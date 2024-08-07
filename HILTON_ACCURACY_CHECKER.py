@@ -1,37 +1,67 @@
 import streamlit as st
 import pandas as pd
 
-# Function to process and compare data
-def process_files(csv_file, excel_file, inncode):
+# Function to dynamically find headers and process data
+def dynamic_process_files(csv_file, excel_file, inncode):
     # Load CSV file
     csv_data = pd.read_csv(csv_file)
-    
-    # Load Excel file and display available sheets
-    excel_file_content = pd.ExcelFile(excel_file, engine='openpyxl')
-    sheet_names = excel_file_content.sheet_names
-    
-    # Debug: Show available sheet names
-    st.write("Available Sheet Names:", sheet_names)
-    
-    # Use the correct sheet name from the uploaded file
-    sheet_name = sheet_names[0]  # Assuming the data is in the first sheet
 
-    # Load a sample of the Excel data for inspection
-    op_data_sample = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', header=None)
+    # Load Excel file using openpyxl and access the first sheet
+    excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
 
-    # Debug: Show sample data for manual inspection
+    # Display available sheet names for debugging
     st.write("Excel Data Sample:")
-    st.dataframe(op_data_sample.head(20))
+    st.dataframe(excel_data.head(20))
 
-    # Determine the correct header row by visual inspection
-    # Let's assume the correct headers are on row 0 for this attempt; adjust as necessary
-    op_data = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', skiprows=5)  # Adjust header row based on inspection
+    # Initialize variables to hold header indices
+    business_date_idx = None
+    inncode_idx = None
+    sold_idx = None
+    rev_idx = None
 
-    # Display current column names
-    st.write("CSV Columns:", csv_data.columns)
-    st.write("Excel Columns after manual adjustment:", op_data.columns)
+    # Find headers dynamically
+    for col in excel_data.columns:
+        for row in range(len(excel_data)):
+            cell_value = str(excel_data[col][row]).strip().lower()
 
-    # Check expected columns
+            # Check for 'Business Date' header
+            if business_date_idx is None and 'business date' in cell_value:
+                business_date_idx = (row, col)
+                st.write(f"'Business Date' found at row {row} column {col}")
+
+            # Check for 'Inncode' header
+            if inncode_idx is None and 'inncode' in cell_value:
+                inncode_idx = (row, col)
+                st.write(f"'Inncode' found at row {row} column {col}")
+
+            # Check for 'SOLD' header
+            if sold_idx is None and 'sold' in cell_value:
+                sold_idx = (row, col)
+                st.write(f"'SOLD' found at row {row} column {col}")
+
+            # Check for 'Rev' header
+            if rev_idx is None and 'rev' in cell_value:
+                rev_idx = (row, col)
+                st.write(f"'Rev' found at row {row} column {col}")
+
+        # Stop if all headers have been found
+        if business_date_idx and inncode_idx and sold_idx and rev_idx:
+            break
+
+    # Check if all required headers were found
+    if not all([business_date_idx, inncode_idx, sold_idx, rev_idx]):
+        st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev').")
+        return pd.DataFrame()
+
+    # Extract data using the identified headers
+    header_row = max(business_date_idx[0], inncode_idx[0], sold_idx[0], rev_idx[0])
+    op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=header_row)
+
+    # Display adjusted Excel columns for debugging
+    st.write("Adjusted Excel Columns:")
+    st.write(op_data.head())
+
+    # Ensure column names match the actual file
     if 'Inncode' not in op_data.columns or 'Business Date' not in op_data.columns:
         st.error("Expected columns 'Inncode' or 'Business Date' not found in Excel file.")
         return pd.DataFrame()
@@ -100,7 +130,7 @@ inncode = st.sidebar.text_input("Enter Inncode to process:")
 if csv_file and excel_file and inncode:
     st.write("Processing...")
     try:
-        results_df = process_files(csv_file, excel_file, inncode)
+        results_df = dynamic_process_files(csv_file, excel_file, inncode)
         if not results_df.empty:
             st.write("Comparison Results:")
             st.dataframe(results_df)
