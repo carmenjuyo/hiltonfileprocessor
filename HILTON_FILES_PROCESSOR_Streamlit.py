@@ -156,18 +156,6 @@ class FileProcessorApp:
         else:
             st.warning("No data matched the filter criteria.")
 
-    def save_to_csv(self):
-        if not self.merged_data.empty:
-            csv = self.merged_data.to_csv(index=False)
-            st.download_button(
-                label="Download data as CSV",
-                data=csv,
-                file_name='processed_data.csv',
-                mime='text/csv',
-            )
-        else:
-            st.warning("No data to save.")
-
     def process_room_revenue(self, filter_criteria, inncode_filter):
         room_revenue_data_frames = []
 
@@ -213,18 +201,6 @@ class FileProcessorApp:
         else:
             st.warning("No data matched the filter criteria or there is no room revenue data.")
 
-    def save_room_revenue_to_csv(self):
-        if not self.room_revenue_data.empty:
-            csv = self.room_revenue_data.to_csv(index=False)
-            st.download_button(
-                label="Download room revenue data as CSV",
-                data=csv,
-                file_name='room_revenue_data.csv',
-                mime='text/csv',
-            )
-        else:
-            st.warning("No room revenue data to save.")
-
 # Main Streamlit app
 def main():
     app = FileProcessorApp()
@@ -242,12 +218,6 @@ def main():
 
     if st.sidebar.button("Process Room Revenue by Day"):
         app.process_room_revenue(filter_criteria, inncode_filter)
-
-    if st.sidebar.button("Save Raw Data to CSV"):
-        app.save_to_csv()
-
-    if st.sidebar.button("Save Room Revenue Data to CSV"):
-        app.save_room_revenue_to_csv()
 
 if __name__ == "__main__":
     main()
