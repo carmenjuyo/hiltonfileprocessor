@@ -5,13 +5,26 @@ import pandas as pd
 def process_files(csv_file, excel_file, inncode):
     # Load CSV file
     csv_data = pd.read_csv(csv_file)
-    
-    # Load Excel file
-    excel_data = pd.read_excel(excel_file, sheet_name=None)
-    op_data = excel_data.get('Sheet1')  # Assuming the relevant sheet is named 'Sheet1'
+
+    # Load Excel file using openpyxl explicitly
+    op_data = pd.read_excel(excel_file, sheet_name='Market Segment Daily Revenue By Hotel', engine='openpyxl', skiprows=6)
+
+    # Display column names for debugging
+    st.write("CSV Columns:", csv_data.columns)
+    st.write("Excel Columns:", op_data.columns)
+
+    # Ensure column names match the actual file
+    if 'Inncode' not in op_data.columns or 'Business Date' not in op_data.columns:
+        st.error("Expected columns 'Inncode' or 'Business Date' not found in Excel file.")
+        return pd.DataFrame()
 
     # Filter Excel data by Inncode
     filtered_data = op_data[op_data['Inncode'] == inncode]
+
+    # Check if filtering results in any data
+    if filtered_data.empty:
+        st.warning("No data found for the given Inncode.")
+        return pd.DataFrame()
 
     # Group by Business Date
     grouped_data = filtered_data.groupby('Business Date').agg({'SOLD': 'sum', 'Rev': 'sum'}).reset_index()
@@ -68,11 +81,15 @@ inncode = st.sidebar.text_input("Enter Inncode to process:")
 # Process and display results
 if csv_file and excel_file and inncode:
     st.write("Processing...")
-    results_df = process_files(csv_file, excel_file, inncode)
-    st.write("Comparison Results:")
-    st.dataframe(results_df)
-    st.write("Accuracy Checks:")
-    accuracy_check = results_df[['RN Difference', 'Rev Difference']].abs().sum()
-    st.write(accuracy_check)
+    try:
+        results_df = process_files(csv_file, excel_file, inncode)
+        if not results_df.empty:
+            st.write("Comparison Results:")
+            st.dataframe(results_df)
+            st.write("Accuracy Checks:")
+            accuracy_check = results_df[['RN Difference', 'Rev Difference']].abs().sum()
+            st.write(accuracy_check)
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 else:
     st.write("Please upload both files and enter an Inncode.")
