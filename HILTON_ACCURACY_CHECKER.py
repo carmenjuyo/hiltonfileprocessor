@@ -16,14 +16,26 @@ def process_files(csv_file, excel_file, inncode):
     # Use the correct sheet name based on the provided data
     sheet_name = sheet_names[0]  # Assuming the data is in the first sheet
 
-    # Load the specific sheet data, skipping the correct number of rows to get headers
-    op_data = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', skiprows=6)
+    # Load the specific sheet data, checking the rows to skip
+    op_data = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', header=None)
 
     # Display column names for debugging
     st.write("CSV Columns:", csv_data.columns)
-    st.write("Excel Columns:", op_data.columns)
+    st.write("Excel Data Preview:", op_data.head())
 
-    # Ensure column names match the actual file
+    # Manual inspection to find correct header
+    st.write("Excel Data Row (as potential header):", op_data.iloc[5])  # Potential header row
+
+    # Assuming that the actual data starts at row 6, we need to adjust if the previous header row was incorrect
+    op_data.columns = op_data.iloc[5]  # Set the header manually from the row
+
+    # Remove header rows above the data
+    op_data = op_data.drop(index=[0, 1, 2, 3, 4, 5]).reset_index(drop=True)
+
+    # Display updated column names for verification
+    st.write("Adjusted Excel Columns:", op_data.columns)
+
+    # Ensure the key columns are present after manual adjustment
     if 'Inncode' not in op_data.columns or 'Business Date' not in op_data.columns:
         st.error("Expected columns 'Inncode' or 'Business Date' not found in Excel file.")
         return pd.DataFrame()
