@@ -6,8 +6,19 @@ def process_files(csv_file, excel_file, inncode):
     # Load CSV file
     csv_data = pd.read_csv(csv_file)
 
-    # Load Excel file using openpyxl explicitly
-    op_data = pd.read_excel(excel_file, sheet_name='Market Segment Daily Revenue By Hotel', engine='openpyxl', skiprows=6)
+    # Load Excel file using openpyxl explicitly and list sheets
+    excel_file_content = pd.ExcelFile(excel_file, engine='openpyxl')
+    sheet_names = excel_file_content.sheet_names
+
+    # Debug: Display available sheet names
+    st.write("Available Sheet Names:", sheet_names)
+
+    # Use the correct sheet name
+    # Adjust the index or name as per the actual available sheets
+    sheet_name = sheet_names[0]  # Assuming the data is in the first sheet
+
+    # Load the specific sheet data
+    op_data = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', skiprows=6)
 
     # Display column names for debugging
     st.write("CSV Columns:", csv_data.columns)
