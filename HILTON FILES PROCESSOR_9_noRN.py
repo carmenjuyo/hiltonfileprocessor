@@ -1,20 +1,19 @@
 import streamlit as st
 import pandas as pd
 import json
-import os
 
 class FileProcessorApp:
     def __init__(self):
-        self.file_paths = []
+        self.file_paths = []  # This will hold the uploaded files
         self.data_frames = []
         self.merged_data = pd.DataFrame()
         self.room_revenue_data = pd.DataFrame()
-    
+
     def display_header(self):
         st.title("Hilton File Processor")
-    
+
     def upload_files(self):
-        # Streamlit file uploader allows multiple files
+        # Use Streamlit's file uploader to allow multiple file uploads
         uploaded_files = st.file_uploader("Upload JSON files", type="json", accept_multiple_files=True)
         if uploaded_files:
             self.file_paths = uploaded_files
@@ -22,27 +21,29 @@ class FileProcessorApp:
 
     def process_files(self, filter_criteria, inncode_filter):
         self.data_frames = []
-        
-        # Iterate over uploaded files
+
         for uploaded_file in self.file_paths:
-            # Read file content
-            file_content = uploaded_file.read().decode("utf-8")
-            data = json.loads(file_content)
-            
-            # Normalize JSON data to a DataFrame
-            df = pd.json_normalize(data)
-            
-            # Check for extract_type and process accordingly
-            if 'extract_type' in df.columns:
-                if df['extract_type'][0] == 'LEDGER':
-                    self.process_ledger_file(df)
-                elif df['extract_type'][0] == 'STAY':
-                    self.process_stay_file(df)
+            try:
+                # Read file content as a JSON object
+                file_content = uploaded_file.read().decode("utf-8")
+                data = json.loads(file_content)
+                df = pd.json_normalize(data)
+
+                if 'extract_type' in df.columns:
+                    if df['extract_type'][0] == 'LEDGER':
+                        self.process_ledger_file(df)
+                    elif df['extract_type'][0] == 'STAY':
+                        self.process_stay_file(df)
+
+            except json.JSONDecodeError as e:
+                st.error(f"Error parsing JSON file {uploaded_file.name}: {e}")
+            except Exception as e:
+                st.error(f"Unexpected error: {e}")
 
         self.display_data(filter_criteria, inncode_filter)
 
     def process_ledger_file(self, df):
-        # Rename columns for the ledger file
+        # Map the original column names to user-friendly names
         df.rename(columns={
             "account_id": "Account ID",
             "account_name": "Account Name",
@@ -143,7 +144,12 @@ class FileProcessorApp:
 
     def display_data(self, filter_criteria, inncode_filter):
         if self.data_frames:
+            # Concatenate all DataFrames into one
             self.merged_data = pd.concat(self.data_frames)
+            # Apply filter criteria
+            if filter_criteria:
+                criteria = filter_criteria.split(',')
+                self.merged_data = self.merged_data[self.merged_data['Filename'].str.contains('|'.join(criteria), na=False)]
             if inncode_filter:
                 self.merged_data = self.merged_data[self.merged_data['Inncode'] == inncode_filter]
             st.dataframe(self.merged_data)
@@ -165,29 +171,33 @@ class FileProcessorApp:
     def process_room_revenue(self, filter_criteria, inncode_filter):
         room_revenue_data_frames = []
 
-        # Iterate over uploaded files
         for uploaded_file in self.file_paths:
-            file_content = uploaded_file.read().decode("utf-8")
-            data = json.loads(file_content)
+            try:
+                file_content = uploaded_file.read().decode("utf-8")
+                data = json.loads(file_content)
+                df = pd.json_normalize(data)
 
-            df = pd.json_normalize(data)
+                if 'extract_type' in df.columns and df['extract_type'][0] == 'LEDGER':
+                    df['ledger_entry_amount'] = pd.to_numeric(df['ledger_entry_amount'], errors='coerce')
 
-            if 'extract_type' in df.columns and df['extract_type'][0] == 'LEDGER':
-                df['ledger_entry_amount'] = pd.to_numeric(df['ledger_entry_amount'], errors='coerce')
+                    # Filter for revenue only
+                    revenue_filter = (df['charge_category'] == 'R') | (df['accounting_category'] == 'RA')
+                    df_filtered_revenue = df[revenue_filter]
 
-                # Filter for revenue only
-                revenue_filter = (df['charge_category'] == 'R') | (df['accounting_category'] == 'RA')
-                df_filtered_revenue = df[revenue_filter]
+                    if inncode_filter:
+                        df_filtered_revenue = df_filtered_revenue[df_filtered_revenue['inncode'] == inncode_filter]
 
-                if inncode_filter:
-                    df_filtered_revenue = df_filtered_revenue[df_filtered_revenue['inncode'] == inncode_filter]
+                    # Group by Business Date and Inncode
+                    df_agg_revenue = df_filtered_revenue.groupby(['business_date', 'inncode']).agg(
+                        Ledger_Entry_Amount=('ledger_entry_amount', 'sum')
+                    ).reset_index()
 
-                # Group by Business Date and Inncode
-                df_agg_revenue = df_filtered_revenue.groupby(['business_date', 'inncode']).agg(
-                    Ledger_Entry_Amount=('ledger_entry_amount', 'sum')
-                ).reset_index()
+                    room_revenue_data_frames.append(df_agg_revenue)
 
-                room_revenue_data_frames.append(df_agg_revenue)
+            except json.JSONDecodeError as e:
+                st.error(f"Error parsing JSON file {uploaded_file.name}: {e}")
+            except Exception as e:
+                st.error(f"Unexpected error: {e}")
 
         if room_revenue_data_frames:
             self.room_revenue_data = pd.concat(room_revenue_data_frames, ignore_index=True)
@@ -215,31 +225,27 @@ class FileProcessorApp:
         else:
             st.warning("No room revenue data to save.")
 
-
 # Main Streamlit app
 def main():
     app = FileProcessorApp()
     app.display_header()
 
     st.sidebar.title("Options")
-    
-    # Sidebar for uploading files
+
     app.upload_files()
-    
-    # Filter criteria input
+
     filter_criteria = st.sidebar.text_input("Name Filter (e.g., LEDGER_Westmont):")
     inncode_filter = st.sidebar.text_input("Enter Inncode (optional):")
-    
+
     if st.sidebar.button("Process Raw Data"):
         app.process_files(filter_criteria, inncode_filter)
 
     if st.sidebar.button("Process Room Revenue by Day"):
         app.process_room_revenue(filter_criteria, inncode_filter)
-        
-    # Save buttons
+
     if st.sidebar.button("Save Processed Data to CSV"):
         app.save_to_csv()
-        
+
     if st.sidebar.button("Save Room Revenue Data to CSV"):
         app.save_room_revenue_to_csv()
 
