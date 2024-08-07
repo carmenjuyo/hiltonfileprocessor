@@ -243,7 +243,7 @@ def main():
     if st.sidebar.button("Process Room Revenue by Day"):
         app.process_room_revenue(filter_criteria, inncode_filter)
 
-    if st.sidebar.button("Save Processed Data to CSV"):
+    if st.sidebar.button("Save Raw Data to CSV"):
         app.save_to_csv()
 
     if st.sidebar.button("Save Room Revenue Data to CSV"):
