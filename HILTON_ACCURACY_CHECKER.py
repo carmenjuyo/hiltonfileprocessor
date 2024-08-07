@@ -5,37 +5,33 @@ import pandas as pd
 def process_files(csv_file, excel_file, inncode):
     # Load CSV file
     csv_data = pd.read_csv(csv_file)
-
-    # Load Excel file using openpyxl and list sheets
+    
+    # Load Excel file and display available sheets
     excel_file_content = pd.ExcelFile(excel_file, engine='openpyxl')
     sheet_names = excel_file_content.sheet_names
-
-    # Display available sheet names for debugging
+    
+    # Debug: Show available sheet names
     st.write("Available Sheet Names:", sheet_names)
-
-    # Use the correct sheet name based on the provided data
+    
+    # Use the correct sheet name from the uploaded file
     sheet_name = sheet_names[0]  # Assuming the data is in the first sheet
 
-    # Load the specific sheet data, checking the rows to skip
-    op_data = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', header=None)
+    # Load a sample of the Excel data for inspection
+    op_data_sample = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', header=None)
 
-    # Display column names for debugging
+    # Debug: Show sample data for manual inspection
+    st.write("Excel Data Sample:")
+    st.dataframe(op_data_sample.head(20))
+
+    # Determine the correct header row by visual inspection
+    # Let's assume the correct headers are on row 0 for this attempt; adjust as necessary
+    op_data = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', skiprows=5)  # Adjust header row based on inspection
+
+    # Display current column names
     st.write("CSV Columns:", csv_data.columns)
-    st.write("Excel Data Preview:", op_data.head())
+    st.write("Excel Columns after manual adjustment:", op_data.columns)
 
-    # Manual inspection to find correct header
-    st.write("Excel Data Row (as potential header):", op_data.iloc[5])  # Potential header row
-
-    # Assuming that the actual data starts at row 6, we need to adjust if the previous header row was incorrect
-    op_data.columns = op_data.iloc[5]  # Set the header manually from the row
-
-    # Remove header rows above the data
-    op_data = op_data.drop(index=[0, 1, 2, 3, 4, 5]).reset_index(drop=True)
-
-    # Display updated column names for verification
-    st.write("Adjusted Excel Columns:", op_data.columns)
-
-    # Ensure the key columns are present after manual adjustment
+    # Check expected columns
     if 'Inncode' not in op_data.columns or 'Business Date' not in op_data.columns:
         st.error("Expected columns 'Inncode' or 'Business Date' not found in Excel file.")
         return pd.DataFrame()
