@@ -14,10 +14,9 @@ def process_files(csv_file, excel_file, inncode):
     st.write("Available Sheet Names:", sheet_names)
 
     # Use the correct sheet name
-    # Adjust the index or name as per the actual available sheets
-    sheet_name = sheet_names[0]  # Assuming the data is in the first sheet
+    sheet_name = 'Market Segment Daily Revenue By'
 
-    # Load the specific sheet data
+    # Load the specific sheet data, skipping the correct number of rows
     op_data = pd.read_excel(excel_file, sheet_name=sheet_name, engine='openpyxl', skiprows=6)
 
     # Display column names for debugging
@@ -43,9 +42,9 @@ def process_files(csv_file, excel_file, inncode):
     # Prepare comparison results
     results = []
     for _, row in csv_data.iterrows():
-        business_date = row['Business Date']
-        rn = row['RN']
-        revnet = row['RevNET']
+        business_date = row['arrivalDate']  # Adjust to actual CSV column name
+        rn = row['rn']                      # Adjust to actual CSV column name
+        revnet = row['revNet']              # Adjust to actual CSV column name
 
         # Find corresponding data in Excel
         excel_row = grouped_data[grouped_data['Business Date'] == business_date]
