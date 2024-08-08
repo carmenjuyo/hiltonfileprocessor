@@ -177,3 +177,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             continue  # Skip dates not common to both files
         rn = row[rn_col]
         revnet = row[revnet_col]
+
+        # Find corresponding data in Excel
+        excel_row = grouped_data_2[grouped
