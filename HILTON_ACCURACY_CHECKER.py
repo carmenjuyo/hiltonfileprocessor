@@ -173,7 +173,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     past_accuracy_rn = results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
     past_accuracy_rev = results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
-       # Prepare future comparison results
+    # Prepare future comparison results
     future_results = []
     for _, row in future_data.iterrows():
         occupancy_date = row[arrival_date_col]
@@ -257,3 +257,4 @@ if st.button("Process"):
             st.error("No matching data found for the given Inncode.")
     else:
         st.error("Please upload all files and enter the Inncode.")
+
