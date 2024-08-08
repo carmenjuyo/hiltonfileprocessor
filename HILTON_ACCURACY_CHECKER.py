@@ -19,7 +19,7 @@ def load_csv(file):
     return pd.read_csv(file_obj, delimiter=delimiter)
 
 # Function to dynamically find headers and process data
-def dynamic_process_files(csv_file, excel_file, inncode, perspective_date):
+def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date):
     # Load CSV file with automatic delimiter detection
     csv_data = load_csv(csv_file)
 
@@ -31,60 +31,78 @@ def dynamic_process_files(csv_file, excel_file, inncode, perspective_date):
     # Assuming the CSV file has the columns 'arrivalDate', 'rn', 'revNet'
     if arrival_date_col not in csv_data.columns:
         st.error(f"Expected column '{arrival_date_col}' not found in CSV file.")
-        return pd.DataFrame(), 0, 0
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     # Convert arrivalDate in CSV to datetime
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
     # Load Excel file using openpyxl and access the first sheet
     excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
+    excel_data_2 = pd.read_excel(excel_file_2, sheet_name='Market Segment', engine='openpyxl', header=None)
 
     # Initialize variables to hold header indices
     headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None}
+    headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
     row_start = None
+    row_start_2 = None
 
     # Function to find the header row and column
-    def find_header(label):
-        for col in excel_data.columns:
-            for row in range(len(excel_data)):
-                cell_value = str(excel_data[col][row]).strip().lower()
+    def find_header(label, data):
+        for col in data.columns:
+            for row in range(len(data)):
+                cell_value = str(data[col][row]).strip().lower()
                 if label in cell_value:
                     return (row, col)
         return None
 
     # Search for each header
     for label in headers.keys():
-        headers[label] = find_header(label)
+        headers[label] = find_header(label, excel_data)
         if headers[label]:
             if row_start is None or headers[label][0] > row_start:
                 row_start = headers[label][0]
 
+    for label in headers_2.keys():
+        headers_2[label] = find_header(label, excel_data_2)
+        if headers_2[label]:
+            if row_start_2 is None or headers_2[label][0] > row_start_2:
+                row_start_2 = headers_2[label][0]
+
     # Check if all required headers were found
     if not all(headers.values()):
-        st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev').")
-        return pd.DataFrame(), 0, 0
+        st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev') in the first Excel file.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+    if not all(headers_2.values()):
+        st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     # Extract data using the identified headers
     op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
+    op_data_2 = pd.read_excel(excel_file_2, sheet_name='Market Segment', engine='openpyxl', header=row_start_2)
 
     # Rename columns to standard names
     op_data.columns = [col.lower().strip() for col in op_data.columns]
+    op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
 
     # Ensure the key columns are present after manual adjustment
     if 'inncode' not in op_data.columns or 'business date' not in op_data.columns:
-        st.error("Expected columns 'Inncode' or 'Business Date' not found in Excel file.")
-        return pd.DataFrame(), 0, 0
+        st.error("Expected columns 'Inncode' or 'Business Date' not found in the first Excel file.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+    if 'occupancy date' not in op_data_2.columns or 'occupancy on books this year' not in op_data_2.columns or 'booked room revenue this year' not in op_data_2.columns:
+        st.error("Expected columns 'Occupancy Date', 'Occupancy On Books This Year', or 'Booked Room Revenue This Year' not found in the second Excel file.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     # Filter Excel data by Inncode
     filtered_data = op_data[op_data['inncode'] == inncode]
 
     # Check if filtering results in any data
     if filtered_data.empty:
-        st.warning("No data found for the given Inncode.")
-        return pd.DataFrame(), 0, 0
+        st.warning("No data found for the given Inncode in the first Excel file.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    # Convert business date in filtered data to datetime
+    # Convert dates to datetime
     filtered_data['business date'] = pd.to_datetime(filtered_data['business date'])
+    op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'])
 
     # Use perspective date or default to yesterday
     if perspective_date:
@@ -92,15 +110,19 @@ def dynamic_process_files(csv_file, excel_file, inncode, perspective_date):
     else:
         end_date = datetime.now() - timedelta(days=1)
 
-    # Filter out future dates
+    # Filter out future dates for first file and past dates for the second file
     filtered_data = filtered_data[filtered_data['business date'] <= end_date]
     csv_data = csv_data[csv_data[arrival_date_col] <= end_date]
+    future_data = csv_data[csv_data[arrival_date_col] > end_date]
+    future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
 
     # Find common dates in both files
     common_dates = set(csv_data[arrival_date_col]).intersection(set(filtered_data['business date']))
+    future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
 
     # Group Excel data by Business Date
     grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
+    grouped_data_2 = future_data_2.groupby('occupancy date').agg({'occupancy on books this year': 'sum', 'booked room revenue this year': 'sum'}).reset_index()
 
     # Prepare comparison results
     results = []
@@ -147,41 +169,11 @@ def dynamic_process_files(csv_file, excel_file, inncode, perspective_date):
     past_accuracy_rn = results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
     past_accuracy_rev = results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
-    return results_df, past_accuracy_rn, past_accuracy_rev
-
-# Streamlit app layout
-st.title("Operational and Revenue Report Comparison Tool")
-
-# File uploads
-st.sidebar.title("Upload Files")
-csv_file = st.sidebar.file_uploader("Upload Daily Totals Extract CSV", type='csv')
-excel_file = st.sidebar.file_uploader("Upload Operational Report Excel", type='xlsx')
-
-# Inncode input
-inncode = st.sidebar.text_input("Enter Inncode to process:")
-
-# Perspective date input
-perspective_date = st.sidebar.date_input("Enter Perspective Date (optional):", value=None)
-
-# Process and display results
-if csv_file and excel_file and inncode:
-    st.write("Processing...")
-    try:
-        results_df, past_accuracy_rn, past_accuracy_rev = dynamic_process_files(csv_file, excel_file, inncode, perspective_date)
-        if not results_df.empty:
-            # Display only the comparison results and accuracy checks
-            st.write("Comparison Results:")
-            st.dataframe(results_df, height=600)
-
-            st.write("Accuracy Checks:")
-            accuracy_check = results_df[['RN Difference', 'Rev Difference']].abs().sum()
-            st.write(f"RN Difference: {accuracy_check['RN Difference']}")
-            st.write(f"Rev Difference: {accuracy_check['Rev Difference']}")
-
-            st.write("Past Accuracy:")
-            st.write(f"RN Percentage Accuracy: {past_accuracy_rn:.2f}%")
-            st.write(f"Rev Percentage Accuracy: {past_accuracy_rev:.2f}%")
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-else:
-    st.write("Please upload both files and enter an Inncode.")
+    # Prepare future comparison results
+    future_results = []
+    for _, row in future_data.iterrows():
+        occupancy_date = row[arrival_date_col]
+        if occupancy_date not in future_common_dates:
+            continue  # Skip dates not common to both files
+        rn = row[rn_col]
+        revnet = row[revnet_col]
