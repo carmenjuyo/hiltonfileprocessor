@@ -11,13 +11,18 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     st.write("CSV Columns:")
     st.write(csv_data.columns)
 
+    # Identify correct column names based on inspection
+    arrival_date_col = 'arrivalDate'  # Adjust this based on actual column name
+    rn_col = 'rn'                    # Adjust this based on actual column name
+    revnet_col = 'revNet'            # Adjust this based on actual column name
+
     # Assuming the CSV file has the columns 'arrivalDate', 'rn', 'revNet'
-    if 'arrivalDate' not in csv_data.columns:
-        st.error("Expected column 'arrivalDate' not found in CSV file.")
+    if arrival_date_col not in csv_data.columns:
+        st.error(f"Expected column '{arrival_date_col}' not found in CSV file.")
         return pd.DataFrame()
 
     # Convert arrivalDate in CSV to datetime
-    csv_data['arrivalDate'] = pd.to_datetime(csv_data['arrivalDate'])
+    csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
     # Load Excel file using openpyxl and access the first sheet
     excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
@@ -83,10 +88,10 @@ def dynamic_process_files(csv_file, excel_file, inncode):
 
     # Filter out future dates
     filtered_data = filtered_data[filtered_data['business date'] <= yesterday]
-    csv_data = csv_data[csv_data['arrivalDate'] <= yesterday]
+    csv_data = csv_data[csv_data[arrival_date_col] <= yesterday]
 
     # Find common dates in both files
-    common_dates = set(csv_data['arrivalDate']).intersection(set(filtered_data['business date']))
+    common_dates = set(csv_data[arrival_date_col]).intersection(set(filtered_data['business date']))
 
     # Group Excel data by Business Date
     grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
@@ -94,11 +99,11 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     # Prepare comparison results
     results = []
     for _, row in csv_data.iterrows():
-        business_date = row['arrivalDate']
+        business_date = row[arrival_date_col]
         if business_date not in common_dates:
             continue  # Skip dates not common to both files
-        rn = row['rn']
-        revnet = row['revNet']
+        rn = row[rn_col]
+        revnet = row[revnet_col]
 
         # Find corresponding data in Excel
         excel_row = grouped_data[grouped_data['business date'] == business_date]
