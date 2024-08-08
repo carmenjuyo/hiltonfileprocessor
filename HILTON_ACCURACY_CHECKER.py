@@ -179,4 +179,77 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         revnet = row[revnet_col]
 
         # Find corresponding data in Excel
-        excel_row = grouped_data_2[grouped
+        excel_row = grouped_data_2[grouped_data_2['occupancy date'] == occupancy_date]
+        if excel_row.empty:
+            continue  # Skip mismatched dates
+
+        occupancy_sum = excel_row['occupancy on books this year'].values[0]
+        booked_rev_sum = excel_row['booked room revenue this year'].values[0]
+
+        # Calculate differences
+        rn_diff = rn - occupancy_sum
+        rev_diff = revnet - booked_rev_sum
+
+        # Calculate percentages
+        rn_percentage = 100 - (abs(rn_diff) / rn) * 100 if rn != 0 else 100
+        rev_percentage = 100 - (abs(rev_diff) / revnet) * 100 if revnet != 0 else 100
+
+        # Append results
+        future_results.append({
+            'Occupancy Date': occupancy_date,
+            'CSV RN': rn,
+            'Excel Occupancy Sum': occupancy_sum,
+            'RN Difference': rn_diff,
+            'RN Percentage': f"{rn_percentage:.2f}%",
+            'CSV RevNET': revnet,
+            'Excel Booked Rev Sum': booked_rev_sum,
+            'Rev Difference': rev_diff,
+            'Rev Percentage': f"{rev_percentage:.2f}%"
+        })
+
+    # Convert future results to DataFrame
+    future_results_df = pd.DataFrame(future_results)
+
+    # Calculate future accuracy
+    future_accuracy_rn = future_results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
+    future_accuracy_rev = future_results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
+
+    return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+
+# Streamlit App
+st.title("Operational and Revenue Report Comparison Tool")
+
+# Upload files
+csv_file = st.file_uploader("Upload Daily Totals Extract CSV", type="csv")
+excel_file = st.file_uploader("Upload Operational Report Excel", type="xlsx")
+excel_file_2 = st.file_uploader("Upload Market Segment Excel", type="xlsx")
+
+# Input for inncode and perspective date
+inncode = st.text_input("Enter Inncode to process:")
+perspective_date = st.date_input("Enter perspective date (optional):", value=None)
+
+if st.button("Process"):
+    if csv_file and excel_file and excel_file_2 and inncode:
+        results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
+            csv_file, excel_file, excel_file_2, inncode, perspective_date
+        )
+
+        if not results_df.empty:
+            st.subheader("Comparison Results:")
+            st.dataframe(results_df)
+
+            st.subheader("Past Accuracy Checks:")
+            st.write(f"Average RN Percentage: {past_accuracy_rn:.2f}%")
+            st.write(f"Average Rev Percentage: {past_accuracy_rev:.2f}%")
+
+            if not future_results_df.empty:
+                st.subheader("Future Comparison Results:")
+                st.dataframe(future_results_df)
+
+                st.subheader("Future Accuracy Checks:")
+                st.write(f"Average RN Percentage: {future_accuracy_rn:.2f}%")
+                st.write(f"Average Rev Percentage: {future_accuracy_rev:.2f}%")
+        else:
+            st.error("No matching data found for the given Inncode.")
+    else:
+        st.error("Please upload all files and enter the Inncode.")
