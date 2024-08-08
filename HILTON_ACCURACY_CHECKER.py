@@ -134,8 +134,8 @@ def dynamic_process_files(csv_file, excel_file, inncode):
         rev_diff = revnet - rev_sum
 
         # Calculate percentages
-        rn_percentage = (abs(rn_diff) / rn) * 100 if rn != 0 else 0
-        rev_percentage = (abs(rev_diff) / revnet) * 100 if revnet != 0 else 0
+        rn_percentage = 100 - (abs(rn_diff) / rn) * 100 if rn != 0 else 100
+        rev_percentage = 100 - (abs(rev_diff) / revnet) * 100 if revnet != 0 else 100
 
         # Append results
         results.append({
