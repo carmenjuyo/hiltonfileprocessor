@@ -116,21 +116,21 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     # Filter out future dates for first file and past dates for the second file
     filtered_data = filtered_data[filtered_data['business date'] <= end_date]
-    csv_data = csv_data[csv_data[arrival_date_col] <= end_date]
+    csv_data_past = csv_data[csv_data[arrival_date_col] <= end_date]
     future_data = csv_data[csv_data[arrival_date_col] > end_date]
     future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
 
     # Find common dates in both files
-    common_dates = set(csv_data[arrival_date_col]).intersection(set(filtered_data['business date']))
+    common_dates = set(csv_data_past[arrival_date_col]).intersection(set(filtered_data['business date']))
     future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
 
     # Group Excel data by Business Date
     grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
     grouped_data_2 = future_data_2.groupby('occupancy date').agg({'occupancy on books this year': 'sum', 'booked room revenue this year': 'sum'}).reset_index()
 
-    # Prepare comparison results
+    # Prepare comparison results for past dates
     results = []
-    for _, row in csv_data.iterrows():
+    for _, row in csv_data_past.iterrows():
         business_date = row[arrival_date_col]
         if business_date not in common_dates:
             continue  # Skip dates not common to both files
@@ -150,8 +150,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         rev_diff = revnet - rev_sum
 
         # Calculate percentages
-        rn_percentage = 100 - (abs(rn_diff) / rn) * 100 if rn != 0 else 100
-        rev_percentage = 100 - (abs(rev_diff) / revnet) * 100 if revnet != 0 else 100
+        rn_percentage = 100 if rn == 0 else 100 - (abs(rn_diff) / rn) * 100
+        rev_percentage = 100 if revnet == 0 else 100 - (abs(rev_diff) / revnet) * 100
 
         # Append results
         results.append({
@@ -173,7 +173,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     past_accuracy_rn = results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
     past_accuracy_rev = results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
-    # Prepare future comparison results
+        # Prepare future comparison results
     future_results = []
     for _, row in future_data.iterrows():
         occupancy_date = row[arrival_date_col]
@@ -182,21 +182,21 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         rn = row[rn_col]
         revnet = row[revnet_col]
 
-        # Find corresponding data in Excel
+        # Find corresponding data in the Market Segment Excel
         excel_row = grouped_data_2[grouped_data_2['occupancy date'] == occupancy_date]
         if excel_row.empty:
             continue  # Skip mismatched dates
 
         occupancy_sum = excel_row['occupancy on books this year'].values[0]
-        booked_rev_sum = excel_row['booked room revenue this year'].values[0]
+        booked_revenue_sum = excel_row['booked room revenue this year'].values[0]
 
         # Calculate differences
         rn_diff = rn - occupancy_sum
-        rev_diff = revnet - booked_rev_sum
+        rev_diff = revnet - booked_revenue_sum
 
         # Calculate percentages
-        rn_percentage = 100 - (abs(rn_diff) / rn) * 100 if rn != 0 else 100
-        rev_percentage = 100 - (abs(rev_diff) / revnet) * 100 if revnet != 0 else 100
+        rn_percentage = 100 if rn == 0 else 100 - (abs(rn_diff) / rn) * 100
+        rev_percentage = 100 if revnet == 0 else 100 - (abs(rev_diff) / revnet) * 100
 
         # Append results
         future_results.append({
@@ -206,7 +206,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             'RN Difference': rn_diff,
             'RN Percentage': f"{rn_percentage:.2f}%",
             'CSV RevNET': revnet,
-            'Excel Booked Rev Sum': booked_rev_sum,
+            'Excel Booked Revenue Sum': booked_revenue_sum,
             'Rev Difference': rev_diff,
             'Rev Percentage': f"{rev_percentage:.2f}%"
         })
@@ -218,43 +218,38 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     future_accuracy_rn = future_results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
     future_accuracy_rev = future_results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
+    # Display results
+    st.subheader('Comparison Results (Past):')
+    st.dataframe(results_df)
+
+    st.subheader('Comparison Results (Future):')
+    st.dataframe(future_results_df)
+
+    st.subheader('Accuracy Checks:')
+    st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
+    st.write(f"Past Rev Accuracy: {past_accuracy_rev:.2f}%")
+    st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
+    st.write(f"Future Rev Accuracy: {future_accuracy_rev:.2f}%")
+
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
-# Streamlit App
-st.title("Operational and Revenue Report Comparison Tool")
+# Streamlit app layout
+st.title('Operational and Revenue Report Comparison Tool')
 
-# Upload files
+# File upload
 csv_file = st.file_uploader("Upload Daily Totals Extract CSV", type="csv")
 excel_file = st.file_uploader("Upload Operational Report Excel", type="xlsx")
 excel_file_2 = st.file_uploader("Upload Market Segment Excel", type="xlsx")
+inncode = st.text_input("Enter Inncode to process:", value="")
 
-# Input for inncode and perspective date
-inncode = st.text_input("Enter Inncode to process:")
-perspective_date = st.date_input("Enter perspective date (optional):", value=None)
+# Perspective date input
+perspective_date = st.date_input("Enter perspective date (optional):", value=datetime.now().date())
 
 if st.button("Process"):
-    if csv_file and excel_file and excel_file_2 and inncode:
+    if not csv_file or not excel_file or not excel_file_2 or not inncode:
+        st.error("Please upload all files and enter the Inncode to process.")
+    else:
         results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
             csv_file, excel_file, excel_file_2, inncode, perspective_date
         )
-
-        if not results_df.empty:
-            st.subheader("Comparison Results:")
-            st.dataframe(results_df)
-
-            st.subheader("Past Accuracy Checks:")
-            st.write(f"Average RN Percentage: {past_accuracy_rn:.2f}%")
-            st.write(f"Average Rev Percentage: {past_accuracy_rev:.2f}%")
-
-            if not future_results_df.empty:
-                st.subheader("Future Comparison Results:")
-                st.dataframe(future_results_df)
-
-                st.subheader("Future Accuracy Checks:")
-                st.write(f"Average RN Percentage: {future_accuracy_rn:.2f}%")
-                st.write(f"Average Rev Percentage: {future_accuracy_rev:.2f}%")
-        else:
-            st.error("No matching data found for the given Inncode.")
-    else:
-        st.error("Please upload all files and enter the Inncode.")
 
