@@ -2,18 +2,21 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
 import csv
+import io
 
 # Function to detect delimiter and load CSV file
 def load_csv(file):
+    # Read the content of the file
+    content = file.read().decode('utf-8')
+    # Use StringIO to simulate a file object
+    file_obj = io.StringIO(content)
     # Read the first few lines to detect the delimiter
-    file.seek(0)
-    sample = file.read(1024)
-    file.seek(0)
+    sample = content[:1024]
     dialect = csv.Sniffer().sniff(sample)
     delimiter = dialect.delimiter
 
     # Load the CSV with the detected delimiter
-    return pd.read_csv(file, delimiter=delimiter)
+    return pd.read_csv(file_obj, delimiter=delimiter)
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, inncode):
