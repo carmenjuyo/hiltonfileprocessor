@@ -74,16 +74,20 @@ def dynamic_process_files(csv_file, excel_file, inncode):
 
     # Filter out future dates
     filtered_data = filtered_data[filtered_data['business date'] <= yesterday]
+    csv_data = csv_data[csv_data['arrivalDate'] <= yesterday]
 
-    # Group by Business Date
+    # Find common dates in both files
+    common_dates = set(csv_data['arrivalDate']).intersection(set(filtered_data['business date']))
+
+    # Group Excel data by Business Date
     grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
 
     # Prepare comparison results
     results = []
     for _, row in csv_data.iterrows():
         business_date = row['arrivalDate']
-        if business_date > yesterday:
-            continue  # Skip future dates
+        if business_date not in common_dates:
+            continue  # Skip dates not common to both files
         rn = row['rn']
         revnet = row['revNet']
 
