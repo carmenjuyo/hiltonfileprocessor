@@ -1,11 +1,24 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import csv
+
+# Function to detect delimiter and load CSV file
+def load_csv(file):
+    # Read the first few lines to detect the delimiter
+    file.seek(0)
+    sample = file.read(1024)
+    file.seek(0)
+    dialect = csv.Sniffer().sniff(sample)
+    delimiter = dialect.delimiter
+
+    # Load the CSV with the detected delimiter
+    return pd.read_csv(file, delimiter=delimiter)
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, inncode):
-    # Load CSV file
-    csv_data = pd.read_csv(csv_file)
+    # Load CSV file with automatic delimiter detection
+    csv_data = load_csv(csv_file)
 
     # Display CSV columns for inspection
     st.write("CSV Columns:")
