@@ -23,10 +23,6 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     # Load CSV file with automatic delimiter detection
     csv_data = load_csv(csv_file)
 
-    # Display CSV columns for inspection
-    st.write("CSV Columns:")
-    st.write(csv_data.columns)
-
     # Identify correct column names based on inspection
     arrival_date_col = 'arrivalDate'  # Adjust this based on actual column name
     rn_col = 'rn'                    # Adjust this based on actual column name
@@ -35,17 +31,13 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     # Assuming the CSV file has the columns 'arrivalDate', 'rn', 'revNet'
     if arrival_date_col not in csv_data.columns:
         st.error(f"Expected column '{arrival_date_col}' not found in CSV file.")
-        return pd.DataFrame()
+        return pd.DataFrame(), 0, 0
 
     # Convert arrivalDate in CSV to datetime
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
     # Load Excel file using openpyxl and access the first sheet
     excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
-
-    # Display available sheet names for debugging
-    st.write("Excel Data Sample:")
-    st.dataframe(excel_data.head(20))
 
     # Initialize variables to hold header indices
     headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None}
@@ -64,14 +56,13 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     for label in headers.keys():
         headers[label] = find_header(label)
         if headers[label]:
-            st.write(f"'{label.capitalize()}' found at row {headers[label][0]} column {headers[label][1]}")
             if row_start is None or headers[label][0] > row_start:
                 row_start = headers[label][0]
 
     # Check if all required headers were found
     if not all(headers.values()):
         st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev').")
-        return pd.DataFrame()
+        return pd.DataFrame(), 0, 0
 
     # Extract data using the identified headers
     op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
@@ -79,14 +70,10 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     # Rename columns to standard names
     op_data.columns = [col.lower().strip() for col in op_data.columns]
 
-    # Display adjusted Excel columns for debugging
-    st.write("Adjusted Excel Columns:")
-    st.dataframe(op_data.head())
-
     # Ensure the key columns are present after manual adjustment
     if 'inncode' not in op_data.columns or 'business date' not in op_data.columns:
         st.error("Expected columns 'Inncode' or 'Business Date' not found in Excel file.")
-        return pd.DataFrame()
+        return pd.DataFrame(), 0, 0
 
     # Filter Excel data by Inncode
     filtered_data = op_data[op_data['inncode'] == inncode]
@@ -94,7 +81,7 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     # Check if filtering results in any data
     if filtered_data.empty:
         st.warning("No data found for the given Inncode.")
-        return pd.DataFrame()
+        return pd.DataFrame(), 0, 0
 
     # Convert business date in filtered data to datetime
     filtered_data['business date'] = pd.to_datetime(filtered_data['business date'])
