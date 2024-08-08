@@ -1,10 +1,14 @@
 import streamlit as st
 import pandas as pd
+from datetime import datetime, timedelta
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, inncode):
     # Load CSV file
     csv_data = pd.read_csv(csv_file)
+
+    # Convert arrivalDate in CSV to datetime
+    csv_data['arrivalDate'] = pd.to_datetime(csv_data['arrivalDate'])
 
     # Load Excel file using openpyxl and access the first sheet
     excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
@@ -62,42 +66,55 @@ def dynamic_process_files(csv_file, excel_file, inncode):
         st.warning("No data found for the given Inncode.")
         return pd.DataFrame()
 
+    # Convert business date in filtered data to datetime
+    filtered_data['business date'] = pd.to_datetime(filtered_data['business date'])
+
+    # Get yesterday's date
+    yesterday = datetime.now() - timedelta(days=1)
+
+    # Filter out future dates
+    filtered_data = filtered_data[filtered_data['business date'] <= yesterday]
+
     # Group by Business Date
     grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
 
     # Prepare comparison results
     results = []
     for _, row in csv_data.iterrows():
-        business_date = row['arrivalDate']  # Adjust to actual CSV column name
-        rn = row['rn']                      # Adjust to actual CSV column name
-        revnet = row['revNet']              # Adjust to actual CSV column name
+        business_date = row['arrivalDate']
+        if business_date > yesterday:
+            continue  # Skip future dates
+        rn = row['rn']
+        revnet = row['revNet']
 
         # Find corresponding data in Excel
         excel_row = grouped_data[grouped_data['business date'] == business_date]
-        if not excel_row.empty:
-            sold_sum = excel_row['sold'].values[0]
-            rev_sum = excel_row['rev'].values[0]
+        if excel_row.empty:
+            continue  # Skip mismatched dates
 
-            # Calculate differences
-            rn_diff = rn - sold_sum
-            rev_diff = revnet - rev_sum
+        sold_sum = excel_row['sold'].values[0]
+        rev_sum = excel_row['rev'].values[0]
 
-            # Calculate percentages
-            rn_percentage = (rn_diff / rn) * 100 if rn != 0 else 0
-            rev_percentage = (rev_diff / revnet) * 100 if revnet != 0 else 0
+        # Calculate differences
+        rn_diff = rn - sold_sum
+        rev_diff = revnet - rev_sum
 
-            # Append results
-            results.append({
-                'Business Date': business_date,
-                'CSV RN': rn,
-                'Excel SOLD Sum': sold_sum,
-                'RN Difference': rn_diff,
-                'RN Percentage': rn_percentage,
-                'CSV RevNET': revnet,
-                'Excel Rev Sum': rev_sum,
-                'Rev Difference': rev_diff,
-                'Rev Percentage': rev_percentage
-            })
+        # Calculate percentages
+        rn_percentage = (rn_diff / rn) * 100 if rn != 0 else 0
+        rev_percentage = (rev_diff / revnet) * 100 if revnet != 0 else 0
+
+        # Append results
+        results.append({
+            'Business Date': business_date,
+            'CSV RN': rn,
+            'Excel SOLD Sum': sold_sum,
+            'RN Difference': rn_diff,
+            'RN Percentage': rn_percentage,
+            'CSV RevNET': revnet,
+            'Excel Rev Sum': rev_sum,
+            'Rev Difference': rev_diff,
+            'Rev Percentage': rev_percentage
+        })
 
     # Convert results to DataFrame
     results_df = pd.DataFrame(results)
