@@ -134,8 +134,8 @@ def dynamic_process_files(csv_file, excel_file, inncode):
         rev_diff = revnet - rev_sum
 
         # Calculate percentages
-        rn_percentage = (rn_diff / rn) * 100 if rn != 0 else 0
-        rev_percentage = (rev_diff / revnet) * 100 if revnet != 0 else 0
+        rn_percentage = (abs(rn_diff) / rn) * 100 if rn != 0 else 0
+        rev_percentage = (abs(rev_diff) / revnet) * 100 if revnet != 0 else 0
 
         # Append results
         results.append({
@@ -143,16 +143,21 @@ def dynamic_process_files(csv_file, excel_file, inncode):
             'CSV RN': rn,
             'Excel SOLD Sum': sold_sum,
             'RN Difference': rn_diff,
-            'RN Percentage': rn_percentage,
+            'RN Percentage': f"{rn_percentage:.2f}%",
             'CSV RevNET': revnet,
             'Excel Rev Sum': rev_sum,
             'Rev Difference': rev_diff,
-            'Rev Percentage': rev_percentage
+            'Rev Percentage': f"{rev_percentage:.2f}%"
         })
 
     # Convert results to DataFrame
     results_df = pd.DataFrame(results)
-    return results_df
+
+    # Calculate past accuracy
+    past_accuracy_rn = results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
+    past_accuracy_rev = results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
+
+    return results_df, past_accuracy_rn, past_accuracy_rev
 
 # Streamlit app layout
 st.title("Operational and Revenue Report Comparison Tool")
@@ -169,13 +174,20 @@ inncode = st.sidebar.text_input("Enter Inncode to process:")
 if csv_file and excel_file and inncode:
     st.write("Processing...")
     try:
-        results_df = dynamic_process_files(csv_file, excel_file, inncode)
+        results_df, past_accuracy_rn, past_accuracy_rev = dynamic_process_files(csv_file, excel_file, inncode)
         if not results_df.empty:
+            # Display only the comparison results and accuracy checks
             st.write("Comparison Results:")
-            st.dataframe(results_df)
+            st.dataframe(results_df, height=600)
+
             st.write("Accuracy Checks:")
             accuracy_check = results_df[['RN Difference', 'Rev Difference']].abs().sum()
-            st.write(accuracy_check)
+            st.write(f"RN Difference: {accuracy_check['RN Difference']}")
+            st.write(f"Rev Difference: {accuracy_check['Rev Difference']}")
+
+            st.write("Past Accuracy:")
+            st.write(f"RN Percentage Accuracy: {past_accuracy_rn:.2f}%")
+            st.write(f"Rev Percentage Accuracy: {past_accuracy_rev:.2f}%")
     except Exception as e:
         st.error(f"An error occurred: {e}")
 else:
