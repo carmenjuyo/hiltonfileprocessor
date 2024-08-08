@@ -7,6 +7,15 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     # Load CSV file
     csv_data = pd.read_csv(csv_file)
 
+    # Display CSV columns for inspection
+    st.write("CSV Columns:")
+    st.write(csv_data.columns)
+
+    # Assuming the CSV file has the columns 'arrivalDate', 'rn', 'revNet'
+    if 'arrivalDate' not in csv_data.columns:
+        st.error("Expected column 'arrivalDate' not found in CSV file.")
+        return pd.DataFrame()
+
     # Convert arrivalDate in CSV to datetime
     csv_data['arrivalDate'] = pd.to_datetime(csv_data['arrivalDate'])
 
