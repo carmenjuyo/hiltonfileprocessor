@@ -39,7 +39,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     try:
         # Load Excel files using openpyxl and access the first sheet
         excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
-        excel_data_2 = pd.read_excel(excel_file_2, sheet_name='Market Segment', engine='openpyxl', header=None)
+        excel_data_2 = pd.read_excel(excel_file_2, sheet_name=0, engine='openpyxl', header=None)
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
@@ -82,7 +82,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     # Extract data using the identified headers
     op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
-    op_data_2 = pd.read_excel(excel_file_2, sheet_name='Market Segment', engine='openpyxl', header=row_start_2)
+    op_data_2 = pd.read_excel(excel_file_2, sheet_name=0, engine='openpyxl', header=row_start_2)
 
     # Rename columns to standard names
     op_data.columns = [col.lower().strip() for col in op_data.columns]
@@ -173,7 +173,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     past_accuracy_rn = results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
     past_accuracy_rev = results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
-        # Prepare future comparison results
+       # Prepare future comparison results
     future_results = []
     for _, row in future_data.iterrows():
         occupancy_date = row[arrival_date_col]
@@ -257,4 +257,3 @@ if st.button("Process"):
             st.error("No matching data found for the given Inncode.")
     else:
         st.error("Please upload all files and enter the Inncode.")
-
