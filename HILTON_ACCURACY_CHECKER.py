@@ -19,7 +19,7 @@ def load_csv(file):
     return pd.read_csv(file_obj, delimiter=delimiter)
 
 # Function to dynamically find headers and process data
-def dynamic_process_files(csv_file, excel_file, inncode):
+def dynamic_process_files(csv_file, excel_file, inncode, perspective_date):
     # Load CSV file with automatic delimiter detection
     csv_data = load_csv(csv_file)
 
@@ -86,12 +86,15 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     # Convert business date in filtered data to datetime
     filtered_data['business date'] = pd.to_datetime(filtered_data['business date'])
 
-    # Get yesterday's date
-    yesterday = datetime.now() - timedelta(days=1)
+    # Use perspective date or default to yesterday
+    if perspective_date:
+        end_date = pd.to_datetime(perspective_date)
+    else:
+        end_date = datetime.now() - timedelta(days=1)
 
     # Filter out future dates
-    filtered_data = filtered_data[filtered_data['business date'] <= yesterday]
-    csv_data = csv_data[csv_data[arrival_date_col] <= yesterday]
+    filtered_data = filtered_data[filtered_data['business date'] <= end_date]
+    csv_data = csv_data[csv_data[arrival_date_col] <= end_date]
 
     # Find common dates in both files
     common_dates = set(csv_data[arrival_date_col]).intersection(set(filtered_data['business date']))
@@ -157,11 +160,14 @@ excel_file = st.sidebar.file_uploader("Upload Operational Report Excel", type='x
 # Inncode input
 inncode = st.sidebar.text_input("Enter Inncode to process:")
 
+# Perspective date input
+perspective_date = st.sidebar.date_input("Enter Perspective Date (optional):", value=None)
+
 # Process and display results
 if csv_file and excel_file and inncode:
     st.write("Processing...")
     try:
-        results_df, past_accuracy_rn, past_accuracy_rev = dynamic_process_files(csv_file, excel_file, inncode)
+        results_df, past_accuracy_rn, past_accuracy_rev = dynamic_process_files(csv_file, excel_file, inncode, perspective_date)
         if not results_df.empty:
             # Display only the comparison results and accuracy checks
             st.write("Comparison Results:")
