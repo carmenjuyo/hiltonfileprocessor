@@ -14,60 +14,48 @@ def dynamic_process_files(csv_file, excel_file, inncode):
     st.dataframe(excel_data.head(20))
 
     # Initialize variables to hold header indices
-    business_date_idx = None
-    inncode_idx = None
-    sold_idx = None
-    rev_idx = None
+    headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None}
+    row_start = None
 
-    # Find headers dynamically
-    for col in excel_data.columns:
-        for row in range(len(excel_data)):
-            cell_value = str(excel_data[col][row]).strip().lower()
+    # Function to find the header row and column
+    def find_header(label):
+        for col in excel_data.columns:
+            for row in range(len(excel_data)):
+                cell_value = str(excel_data[col][row]).strip().lower()
+                if label in cell_value:
+                    return (row, col)
+        return None
 
-            # Check for 'Business Date' header
-            if business_date_idx is None and 'business date' in cell_value:
-                business_date_idx = (row, col)
-                st.write(f"'Business Date' found at row {row} column {col}")
-
-            # Check for 'Inncode' header
-            if inncode_idx is None and 'inncode' in cell_value:
-                inncode_idx = (row, col)
-                st.write(f"'Inncode' found at row {row} column {col}")
-
-            # Check for 'SOLD' header
-            if sold_idx is None and 'sold' in cell_value:
-                sold_idx = (row, col)
-                st.write(f"'SOLD' found at row {row} column {col}")
-
-            # Check for 'Rev' header
-            if rev_idx is None and 'rev' in cell_value:
-                rev_idx = (row, col)
-                st.write(f"'Rev' found at row {row} column {col}")
-
-        # Stop if all headers have been found
-        if business_date_idx and inncode_idx and sold_idx and rev_idx:
-            break
+    # Search for each header
+    for label in headers.keys():
+        headers[label] = find_header(label)
+        if headers[label]:
+            st.write(f"'{label.capitalize()}' found at row {headers[label][0]} column {headers[label][1]}")
+            if row_start is None or headers[label][0] > row_start:
+                row_start = headers[label][0]
 
     # Check if all required headers were found
-    if not all([business_date_idx, inncode_idx, sold_idx, rev_idx]):
+    if not all(headers.values()):
         st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev').")
         return pd.DataFrame()
 
     # Extract data using the identified headers
-    header_row = max(business_date_idx[0], inncode_idx[0], sold_idx[0], rev_idx[0])
-    op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=header_row)
+    op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
+
+    # Rename columns to standard names
+    op_data.columns = [col.lower().strip() for col in op_data.columns]
 
     # Display adjusted Excel columns for debugging
     st.write("Adjusted Excel Columns:")
-    st.write(op_data.head())
+    st.dataframe(op_data.head())
 
-    # Ensure column names match the actual file
-    if 'Inncode' not in op_data.columns or 'Business Date' not in op_data.columns:
+    # Ensure the key columns are present after manual adjustment
+    if 'inncode' not in op_data.columns or 'business date' not in op_data.columns:
         st.error("Expected columns 'Inncode' or 'Business Date' not found in Excel file.")
         return pd.DataFrame()
 
     # Filter Excel data by Inncode
-    filtered_data = op_data[op_data['Inncode'] == inncode]
+    filtered_data = op_data[op_data['inncode'] == inncode]
 
     # Check if filtering results in any data
     if filtered_data.empty:
@@ -75,7 +63,7 @@ def dynamic_process_files(csv_file, excel_file, inncode):
         return pd.DataFrame()
 
     # Group by Business Date
-    grouped_data = filtered_data.groupby('Business Date').agg({'SOLD': 'sum', 'Rev': 'sum'}).reset_index()
+    grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
 
     # Prepare comparison results
     results = []
@@ -85,10 +73,10 @@ def dynamic_process_files(csv_file, excel_file, inncode):
         revnet = row['revNet']              # Adjust to actual CSV column name
 
         # Find corresponding data in Excel
-        excel_row = grouped_data[grouped_data['Business Date'] == business_date]
+        excel_row = grouped_data[grouped_data['business date'] == business_date]
         if not excel_row.empty:
-            sold_sum = excel_row['SOLD'].values[0]
-            rev_sum = excel_row['Rev'].values[0]
+            sold_sum = excel_row['sold'].values[0]
+            rev_sum = excel_row['rev'].values[0]
 
             # Calculate differences
             rn_diff = rn - sold_sum
