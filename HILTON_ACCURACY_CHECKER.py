@@ -197,7 +197,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
 # Streamlit app layout
-st.title('Operational and Revenue Report Comparison Tool')
+st.title('Hilton Accuracy Check Tool')
 
 csv_file = st.file_uploader("Upload Daily Totals Extract CSV", type="csv")
 excel_file = st.file_uploader("Upload Operational Report Excel", type="xlsx")
@@ -206,9 +206,9 @@ inncode = st.text_input("Enter Inncode to process:", value="")
 
 # VAT options
 apply_vat = st.checkbox("Apply VAT deduction to future revenue?")
-vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=20.0, step=0.1)
+vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
 
-perspective_date = st.date_input("Enter perspective date (optional):", value=datetime.now().date())
+perspective_date = st.date_input("Enter perspective date (date of IDeaS file receipt):", value=datetime.now().date())
 
 if st.button("Process"):
     if not csv_file or not excel_file or not excel_file_2 or not inncode:
