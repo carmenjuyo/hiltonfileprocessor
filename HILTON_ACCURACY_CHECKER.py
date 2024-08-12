@@ -157,7 +157,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         booked_revenue_sum = excel_row['booked room revenue this year'].values[0]
 
         if apply_vat:
-            booked_revenue_sum /= vat_rate
+            booked_revenue_sum /= (1 + vat_rate / 100)
 
         rn_diff = rn - occupancy_sum
         rev_diff = revnet - booked_revenue_sum
@@ -206,7 +206,7 @@ inncode = st.text_input("Enter Inncode to process:", value="")
 
 # VAT options
 apply_vat = st.checkbox("Apply VAT deduction to future revenue?")
-vat_rate = 1.2  # Default VAT rate for 20%
+vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=20.0, step=0.1)
 
 perspective_date = st.date_input("Enter perspective date (optional):", value=datetime.now().date())
 
