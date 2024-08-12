@@ -156,12 +156,12 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         # Append results
         results.append({
             'Business Date': business_date,
-            'CSV RN': rn,
-            'Excel SOLD Sum': sold_sum,
+            'Juyo RN': rn,
+            'Hilton RN': sold_sum,
             'RN Difference': rn_diff,
             'RN Percentage': f"{rn_percentage:.2f}%",
-            'CSV RevNET': revnet,
-            'Excel Rev Sum': rev_sum,
+            'Juyo Rev': revnet,
+            'Hilton Rev': rev_sum,
             'Rev Difference': rev_diff,
             'Rev Percentage': f"{rev_percentage:.2f}%"
         })
@@ -173,7 +173,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     past_accuracy_rn = results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
     past_accuracy_rev = results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
-        # Prepare future comparison results
+    # Prepare future comparison results
     future_results = []
     for _, row in future_data.iterrows():
         occupancy_date = row[arrival_date_col]
@@ -200,13 +200,13 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         # Append results
         future_results.append({
-            'Occupancy Date': occupancy_date,
-            'CSV RN': rn,
-            'Excel Occupancy Sum': occupancy_sum,
+            'Business Date': occupancy_date,
+            'Juyo RN': rn,
+            'IDeaS RN': occupancy_sum,
             'RN Difference': rn_diff,
             'RN Percentage': f"{rn_percentage:.2f}%",
-            'CSV RevNET': revnet,
-            'Excel Booked Revenue Sum': booked_revenue_sum,
+            'Juyo Rev': revnet,
+            'IDeaS Rev': booked_revenue_sum,
             'Rev Difference': rev_diff,
             'Rev Percentage': f"{rev_percentage:.2f}%"
         })
