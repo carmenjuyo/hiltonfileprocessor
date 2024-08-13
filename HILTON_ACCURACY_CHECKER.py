@@ -174,7 +174,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     past_accuracy_rn = results_df['RN Percentage'].str.rstrip('%').astype(float).mean()
     past_accuracy_rev = results_df['Rev Percentage'].str.rstrip('%').astype(float).mean()
 
-        future_results = []
+    future_results = []
     for _, row in future_data.iterrows():
         occupancy_date = row[arrival_date_col]
         if occupancy_date not in future_common_dates:
