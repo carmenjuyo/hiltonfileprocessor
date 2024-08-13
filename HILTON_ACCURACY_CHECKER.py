@@ -241,8 +241,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['RN Difference'],
         mode='lines+markers',
         name='RNs Discrepancy (Future)',
-        line=dict(color='cyan'),
-        marker=dict(color='cyan', size=8)
+        line=dict(color='orange'),
+        marker=dict(color='orange', size=8)
     ))
 
     # Revenue Discrepancy (Future)
@@ -251,8 +251,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Future)',
-        line=dict(color='red'),
-        marker=dict(color='red', size=8)
+        line=dict(color='magenta'),
+        marker=dict(color='magenta', size=8)
     ))
 
     fig.update_layout(
@@ -273,12 +273,23 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     # Display past and future results as tables after the graph
     st.subheader('Detailed Accuracy Comparison (Past and Future)')
 
+    def selective_color_scale(val, subset):
+        """Apply color scale only to percentage columns."""
+        if subset in ['RN Percentage', 'Rev Percentage']:
+            if val >= 98:
+                return 'background-color: green'
+            elif 95 <= val < 98:
+                return 'background-color: darkgoldenrod'
+            else:
+                return 'background-color: red'
+        return ''
+
     st.write("Past Comparison:")
-    past_styled = results_df.style.applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+    past_styled = results_df.style.applymap(lambda val: selective_color_scale(val, 'RN Percentage'), subset=['RN Percentage']).applymap(lambda val: selective_color_scale(val, 'Rev Percentage'), subset=['Rev Percentage'])
     st.dataframe(past_styled, use_container_width=True)
 
     st.write("Future Comparison:")
-    future_styled = future_results_df.style.applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+    future_styled = future_results_df.style.applymap(lambda val: selective_color_scale(val, 'RN Percentage'), subset=['RN Percentage']).applymap(lambda val: selective_color_scale(val, 'Rev Percentage'), subset=['Rev Percentage'])
     st.dataframe(future_styled, use_container_width=True)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
