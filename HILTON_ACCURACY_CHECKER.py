@@ -40,14 +40,19 @@ def read_excel_with_fallback(file, sheet_name=None, header=None):
     try:
         # Try reading with openpyxl first
         return pd.read_excel(file, sheet_name=sheet_name, engine='openpyxl', header=header)
-    except Exception as e:
-        st.warning(f"Error reading with openpyxl: {e}. Attempting to read with xlrd.")
+    except Exception as e1:
+        st.warning(f"Error reading with openpyxl: {e1}. Attempting to read with xlrd.")
         try:
             # If openpyxl fails, try with xlrd
             return pd.read_excel(file, sheet_name=sheet_name, engine='xlrd', header=header)
-        except Exception as e:
-            st.error(f"Error reading with xlrd: {e}. Unable to read the Excel file.")
-            return None
+        except Exception as e2:
+            st.warning(f"Error reading with xlrd: {e2}. Attempting to read with default engine.")
+            try:
+                # If xlrd fails, try with the default engine
+                return pd.read_excel(file, sheet_name=sheet_name, header=header)
+            except Exception as e3:
+                st.error(f"Error reading with default engine: {e3}. Unable to read the Excel file.")
+                return None
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
@@ -72,8 +77,12 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     sheet_name = None
 
     try:
+        # Debugging: Display sheet names
+        excel_sheets = pd.ExcelFile(excel_file_2).sheet_names
+        st.write(f"Excel file sheets: {excel_sheets}")
+
         # Loop through sheets to find "Market Segment" sheet
-        for sheet in pd.ExcelFile(excel_file_2).sheet_names:
+        for sheet in excel_sheets:
             data = read_excel_with_fallback(excel_file_2, sheet_name=sheet, header=None)
             if data is not None and "market segment" in sheet.lower():
                 excel_data_2 = data
@@ -82,6 +91,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         
         if excel_data_2 is None:
             raise ValueError("Market Segment sheet not found in IDeaS Report.")
+
+        # Debugging: Display preview of the sheet
+        st.write(f"Preview of '{sheet_name}' sheet:")
+        st.write(excel_data_2.head())
 
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
