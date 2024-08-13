@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 import csv
 import io
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Set Streamlit page configuration to wide layout
 st.set_page_config(layout="wide")
@@ -198,12 +199,13 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
     st.write(f"Future Rev Accuracy: {future_accuracy_rev:.2f}%")
 
-    # Plotting the accuracy results
+    # Plotting the accuracy results using Seaborn for better visuals
+    sns.set(style="whitegrid")
     fig, ax = plt.subplots()
     categories = ['Past RN', 'Past Rev', 'Future RN', 'Future Rev']
     accuracies = [past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev]
     
-    ax.bar(categories, accuracies, color=['blue', 'green', 'orange', 'red'])
+    sns.barplot(x=categories, y=accuracies, palette="Blues_d", ax=ax)
     ax.set_ylim([0, 100])
     ax.set_ylabel('Accuracy Percentage')
     ax.set_title('Accuracy Checks Results')
