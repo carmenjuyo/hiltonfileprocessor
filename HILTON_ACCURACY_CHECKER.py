@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 import csv
 import io
 
+# Set Streamlit page configuration to wide layout
+st.set_page_config(layout="wide")
+
 # Function to detect delimiter and load CSV file
 def load_csv(file):
     content = file.read().decode('utf-8')
@@ -205,7 +208,7 @@ excel_file_2 = st.file_uploader("Upload Market Segment Excel", type="xlsx")
 inncode = st.text_input("Enter Inncode to process:", value="")
 
 # VAT options
-apply_vat = st.checkbox("Apply VAT deduction to future revenue?", value=False)
+apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
 vat_rate = None
 if apply_vat:
     vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
