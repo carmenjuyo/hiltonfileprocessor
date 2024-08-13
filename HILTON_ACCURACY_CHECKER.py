@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import csv
 import io
 import plotly.graph_objects as go
-from openpyxl import Workbook
 import os
 
 # Set Streamlit page configuration to wide layout and dark theme
@@ -37,30 +36,30 @@ def load_csv(file):
     delimiter = dialect.delimiter
     return pd.read_csv(file_obj, delimiter=delimiter)
 
-# Function to re-save the Excel file contents back into the same file
-def resave_excel_in_place(file_path):
+# Function to re-save the Excel file to ensure proper structure
+def resave_excel_file(file, temp_dir):
     try:
-        # Read the file using openpyxl
-        with pd.ExcelFile(file_path, engine='openpyxl') as xls:
-            writer = pd.ExcelWriter(file_path, engine='openpyxl', mode='w')
-            for sheet_name in xls.sheet_names:
-                df = pd.read_excel(xls, sheet_name=sheet_name)
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-            writer.save()
-        return file_path
+        excel_data = pd.read_excel(file, engine='openpyxl', sheet_name=None)  # Load all sheets
+        resaved_file_path = os.path.join(temp_dir, "resaved_file.xlsx")
+        
+        with pd.ExcelWriter(resaved_file_path, engine='openpyxl') as writer:
+            for sheet_name, data in excel_data.items():
+                data.to_excel(writer, sheet_name=sheet_name, index=False)
+        
+        return resaved_file_path
     except Exception as e:
-        st.error(f"Failed to re-save the Excel file in place: {e}")
+        st.error(f"Error resaving Excel file: {e}")
         return None
 
-# Function to try reading Excel with different engines and re-save if necessary
-def read_excel_with_fallback(file_path, sheet_name=None, header=None):
+# Function to read Excel with fallback and resave if necessary
+def read_excel_with_fallback(file, temp_dir, sheet_name=None, header=None):
     try:
         # Try reading with openpyxl first
-        return pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl', header=header)
+        return pd.read_excel(file, sheet_name=sheet_name, engine='openpyxl', header=header)
     except Exception as e1:
         st.warning(f"Error reading with openpyxl: {e1}. Attempting to re-save the file.")
-        # Attempt to re-save the file in place
-        resaved_file = resave_excel_in_place(file_path)
+        # Attempt to re-save the file and then read it again
+        resaved_file = resave_excel_file(file, temp_dir)
         if resaved_file:
             try:
                 return pd.read_excel(resaved_file, sheet_name=sheet_name, engine='openpyxl', header=header)
@@ -72,8 +71,8 @@ def read_excel_with_fallback(file_path, sheet_name=None, header=None):
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
-    # Save uploaded Excel files to a temporary location
-    temp_dir = st.temp_directory()
+    # Use Streamlit's temporary directory to store files
+    temp_dir = os.path.dirname(st.__file__)
 
     excel_path = os.path.join(temp_dir, 'operational_report.xlsx')
     excel_file_path = os.path.join(temp_dir, 'ideas_report.xlsx')
@@ -96,7 +95,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
     # Try reading the first Excel file with fallback
-    excel_data = read_excel_with_fallback(excel_path, sheet_name=0, header=None)
+    excel_data = read_excel_with_fallback(excel_path, temp_dir, sheet_name=0, header=None)
     if excel_data is None:
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
@@ -111,7 +110,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         # Loop through sheets to find "Market Segment" sheet
         for sheet in excel_sheets:
-            data = read_excel_with_fallback(excel_file_path, sheet_name=sheet, header=None)
+            data = read_excel_with_fallback(excel_file_path, temp_dir, sheet_name=sheet, header=None)
             if data is not None and "market segment" in sheet.lower():
                 excel_data_2 = data
                 sheet_name = sheet
