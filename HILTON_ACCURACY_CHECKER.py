@@ -329,9 +329,7 @@ if apply_vat:
 perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
 
 if st.button("Process"):
-    if not csv_file or not excel_file or not excel_file_2 or not inncode:
-        st.error("Please upload all files and enter the Inncode to process.")
-    else:
+    with st.spinner('Processing...'):
         results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
             csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
         )
