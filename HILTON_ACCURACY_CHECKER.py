@@ -134,17 +134,17 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             'Juyo RN': rn,
             'Hilton RN': sold_sum,
             'RN Difference': rn_diff,
-            'RN Percentage': f"{rn_percentage:.2f}%",
+            'RN Percentage': rn_percentage,
             'Juyo Rev': revnet,
             'Hilton Rev': rev_sum,
             'Rev Difference': rev_diff,
-            'Rev Percentage': f"{rev_percentage:.2f}%"
+            'Rev Percentage': rev_percentage
         })
 
     results_df = pd.DataFrame(results)
 
-    past_accuracy_rn = results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
-    past_accuracy_rev = results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
+    past_accuracy_rn = results_df['RN Percentage'].mean()
+    past_accuracy_rev = results_df['Rev Percentage'].mean()
 
     future_results = []
     for _, row in future_data.iterrows():
@@ -175,44 +175,50 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             'Juyo RN': rn,
             'IDeaS RN': occupancy_sum,
             'RN Difference': rn_diff,
-            'RN Percentage': f"{rn_percentage:.2f}%",
+            'RN Percentage': rn_percentage,
             'Juyo Rev': revnet,
             'IDeaS Rev': booked_revenue_sum,
             'Rev Difference': rev_diff,
-            'Rev Percentage': f"{rev_percentage:.2f}%"
+            'Rev Percentage': rev_percentage
         })
 
     future_results_df = pd.DataFrame(future_results)
 
-    future_accuracy_rn = future_results_df['RN Percentage'].apply(lambda x: float(x.strip('%'))).mean()
-    future_accuracy_rev = future_results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
+    future_accuracy_rn = future_results_df['RN Percentage'].mean()
+    future_accuracy_rev = future_results_df['Rev Percentage'].mean()
 
-    st.subheader('Comparison Results (Past):')
-    st.dataframe(results_df, use_container_width=True)
+    st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
 
-    st.subheader('Comparison Results (Future):')
-    st.dataframe(future_results_df, use_container_width=True)
+    # Display past accuracy results with color scales
+    past_results = pd.DataFrame({
+        'RNs': [f'{past_accuracy_rn:.2f}%'],
+        'Revenue': [f'{past_accuracy_rev:.2f}%']
+    }, index=['Past'])
 
-    st.subheader('Accuracy Checks:')
-    st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
-    st.write(f"Past Rev Accuracy: {past_accuracy_rev:.2f}%")
-    st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
-    st.write(f"Future Rev Accuracy: {future_accuracy_rev:.2f}%")
+    future_results = pd.DataFrame({
+        'RNs': [f'{future_accuracy_rn:.2f}%'],
+        'Revenue': [f'{future_accuracy_rev:.2f}%']
+    }, index=['Future'])
 
-    # Plotting the accuracy results using Seaborn for better visuals
-    sns.set(style="whitegrid")
-    fig, ax = plt.subplots()
-    categories = ['Past RN', 'Past Rev', 'Future RN', 'Future Rev']
-    accuracies = [past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev]
+    styled_df = pd.concat([past_results, future_results]).style.background_gradient(cmap='RdYlGn', axis=1)
+    st.dataframe(styled_df, use_container_width=True)
+
+    # Plotting the discrepancy over time using dual axis for RN and Revenue
+    st.subheader('RNs and Revenue Discrepancy Over Time')
+
+    fig, ax1 = plt.subplots(figsize=(14, 6))
     
-    sns.barplot(x=categories, y=accuracies, palette="Blues_d", ax=ax)
-    ax.set_ylim([0, 100])
-    ax.set_ylabel('Accuracy Percentage')
-    ax.set_title('Accuracy Checks Results')
+    ax1.set_xlabel('Date')
+    ax1.set_ylabel('RNs Discrepancy', color='blue')
+    ax1.plot(results_df['Business Date'], results_df['RN Difference'], color='blue', label='RNs Discrepancy')
+    ax1.tick_params(axis='y', labelcolor='blue')
 
-    for i, v in enumerate(accuracies):
-        ax.text(i, v + 1, f"{v:.2f}%", ha='center', va='bottom')
+    ax2 = ax1.twinx()  
+    ax2.set_ylabel('Revenue Discrepancy', color='red')
+    ax2.plot(results_df['Business Date'], results_df['Rev Difference'], color='red', label='Revenue Discrepancy')
+    ax2.tick_params(axis='y', labelcolor='red')
 
+    fig.tight_layout()  
     st.pyplot(fig)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
