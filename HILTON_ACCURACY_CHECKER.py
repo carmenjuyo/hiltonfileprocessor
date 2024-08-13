@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 from datetime import datetime, timedelta
 import csv
 import io
@@ -188,59 +186,34 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     future_accuracy_rev = future_results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
     st.subheader('Comparison Results (Past):')
-    st.dataframe(results_df.style.set_properties(**{'text-align': 'center'}), use_container_width=True)
+    st.dataframe(results_df)
 
     st.subheader('Comparison Results (Future):')
-    st.dataframe(future_results_df.style.set_properties(**{'text-align': 'center'}), use_container_width=True)
+    st.dataframe(future_results_df)
 
     st.subheader('Accuracy Checks:')
-    col1, col2 = st.columns(2)
-    with col1:
-        st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
-        st.write(f"Past Rev Accuracy: {past_accuracy_rev:.2f}%")
-    with col2:
-        st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
-        st.write(f"Future Rev Accuracy: {future_accuracy_rev:.2f}%")
-
-    st.subheader('Accuracy Check Visualization')
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
-    
-    sns.barplot(x=['Past RN', 'Past Rev'], y=[past_accuracy_rn, past_accuracy_rev], ax=ax[0])
-    ax[0].set_title('Past Accuracy')
-    ax[0].set_ylim(0, 100)
-    
-    sns.barplot(x=['Future RN', 'Future Rev'], y=[future_accuracy_rn, future_accuracy_rev], ax=ax[1])
-    ax[1].set_title('Future Accuracy')
-    ax[1].set_ylim(0, 100)
-    
-    st.pyplot(fig)
+    st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
+    st.write(f"Past Rev Accuracy: {past_accuracy_rev:.2f}%")
+    st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
+    st.write(f"Future Rev Accuracy: {future_accuracy_rev:.2f}%")
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
 # Streamlit app layout
 st.title('Hilton Accuracy Check Tool')
 
-# Uniform layout with columns
-with st.expander("Upload Files", expanded=True):
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
-    with col2:
-        excel_file = st.file_uploader("Upload Operational Report (.xlsx)", type="xlsx")
-    with col2:
-        excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
-        
-    inncode = st.text_input("Enter Inncode to process:", value="")
+csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
+excel_file = st.file_uploader("Upload Operational Report (.xlsx)", type="xlsx")
+excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
+inncode = st.text_input("Enter Inncode to process:", value="")
 
-with st.expander("VAT and Date Options", expanded=True):
-    col1, col2 = st.columns(2)
-    with col1:
-        apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
-        vat_rate = None
-        if apply_vat:
-            vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
-    with col2:
-        perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
+# VAT options
+apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
+vat_rate = None
+if apply_vat:
+    vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
+
+perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
 
 if st.button("Process"):
     if not csv_file or not excel_file or not excel_file_2 or not inncode:
