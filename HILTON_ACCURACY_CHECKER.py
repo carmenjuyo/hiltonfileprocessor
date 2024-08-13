@@ -13,12 +13,12 @@ st.markdown(
     """
     <style>
     /* Make the cloud upload icons cyan */
-    [data-testid="stFileUploadDropzone"] svg {
+    .stFileUpload > label div svg {
         color: cyan !important;
     }
 
     /* Make the file icons green */
-    [data-testid="stFileUploadDisplay"] svg {
+    .uploadedFile > div:first-child > svg {
         color: green !important;
     }
     </style>
@@ -84,7 +84,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev') in the first Excel file.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
     if not all(headers_2.values()):
-        st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
+        st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') not found in the second Excel file.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
