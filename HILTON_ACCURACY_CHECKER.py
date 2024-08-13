@@ -19,8 +19,8 @@ st.markdown(
 
     /* Make the file icons green */
     .stFileUploadDisplay > div:first-child > svg {
-        color: #2A9D8F !important;
-    }
+        color: #469798 !important;
+    } 
     </style>
     """,
     unsafe_allow_html=True,
@@ -218,11 +218,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         if isinstance(val, str) and '%' in val:
             val = float(val.strip('%'))
             if val >= 98:
-                return 'background-color: #2A9D8F'
+                return 'background-color: #469798' #green
             elif 95 <= val < 98:
-                return 'background-color: #EC9F05'
+                return 'background-color: #F2A541' #yellow
             else:
-                return 'background-color: #BF3100'
+                return 'background-color: #BF3100' #red
         return ''
 
     accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
@@ -249,8 +249,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Past)',
-        line=dict(color='#BF3100'),
-        marker=dict(color='#BF3100', size=8)
+        line=dict(color='#BF3100'), #red
+        marker=dict(color='#BF3100', size=8) #red
     ))
 
     # RN Discrepancy (Future)
@@ -269,8 +269,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Future)',
-        line=dict(color='#BF3100'),
-        marker=dict(color='#BF3100', size=8)
+        line=dict(color='#BF3100'), #red
+        marker=dict(color='#BF3100', size=8) #red
     ))
 
     fig.update_layout(
@@ -295,11 +295,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         """Apply color scale only to percentage columns."""
         if subset in ['RN Percentage', 'Rev Percentage']:
             if val >= 98:
-                return 'background-color: #2A9D8F'
+                return 'background-color: #469798' #green
             elif 95 <= val < 98:
-                return 'background-color: #EC9F05'
+                return 'background-color: #F2A541' #yellow
             else:
-                return 'background-color: #BF3100'
+                return 'background-color: #BF3100' #red
         return ''
 
     st.write("Past Comparison:")
