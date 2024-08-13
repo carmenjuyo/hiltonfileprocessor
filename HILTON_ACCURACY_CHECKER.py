@@ -188,43 +188,71 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
 
-    # Display past accuracy results with color scales
-    past_results = pd.DataFrame({
-        'RNs': [f'{past_accuracy_rn:.2f}%'],
-        'Revenue': [f'{past_accuracy_rev:.2f}%']
-    }, index=['Past'])
+    # Apply color coding to the accuracy matrix
+    accuracy_matrix = pd.DataFrame({
+        'Metric': ['RNs', 'Revenue'],
+        'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'],
+        'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%']
+    })
 
-    future_results = pd.DataFrame({
-        'RNs': [f'{future_accuracy_rn:.2f}%'],
-        'Revenue': [f'{future_accuracy_rev:.2f}%']
-    }, index=['Future'])
+    def color_scale(val):
+        """Color scale for percentages."""
+        if isinstance(val, str) and '%' in val:
+            val = float(val.strip('%'))
+            if val >= 98:
+                return 'background-color: green'
+            elif 95 <= val < 98:
+                return 'background-color: darkgoldenrod'
+            else:
+                return 'background-color: red'
+        return ''
 
-    styled_df = pd.concat([past_results, future_results]).style.background_gradient(cmap='RdYlGn', axis=1)
-    st.dataframe(styled_df, use_container_width=True)
+    accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
+    st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
     # Plotting the discrepancy over time using Plotly
     st.subheader('RNs and Revenue Discrepancy Over Time')
 
     fig = go.Figure()
 
-    # RN Discrepancy
+    # RN Discrepancy (Past)
     fig.add_trace(go.Scatter(
         x=results_df['Business Date'],
         y=results_df['RN Difference'],
         mode='lines+markers',
-        name='RNs Discrepancy',
+        name='RNs Discrepancy (Past)',
         line=dict(color='cyan'),
         marker=dict(color='cyan', size=8)
     ))
 
-    # Revenue Discrepancy
+    # Revenue Discrepancy (Past)
     fig.add_trace(go.Scatter(
         x=results_df['Business Date'],
         y=results_df['Rev Difference'],
         mode='lines+markers',
-        name='Revenue Discrepancy',
+        name='Revenue Discrepancy (Past)',
         line=dict(color='red'),
         marker=dict(color='red', size=8)
+    ))
+
+    # RN Discrepancy (Future)
+    fig.add_trace(go.Scatter(
+        x=future_results_df['Business Date'],
+        y=future_results_df['RN Difference'],
+        mode='lines+markers',
+        name='RNs Discrepancy (Future)',
+        line=dict(color='orange'),
+        marker=dict(color='orange', size=8)
+    ))
+
+    # Revenue Discrepancy (Future)
+    fig.add_trace(go.Scatter(
+        x=future_results_df['Business Date'],
+        y=future_results_df['Rev Difference'],
+        mode='lines+markers',
+        name='Revenue Discrepancy (Future)',
+        line=dict(color='magenta'),
+        marker=dict(color='magenta', size=8)
     ))
 
     fig.update_layout(
@@ -244,16 +272,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     # Display past and future results as tables after the graph
     st.subheader('Detailed Accuracy Comparison (Past and Future)')
-
-    def color_scale(val):
-        """Color scale for percentages."""
-        if val >= 98:
-            color = 'background-color: green'
-        elif 95 <= val < 98:
-            color = 'background-color: darkgoldenrod'
-        else:
-            color = 'background-color: red'
-        return color
 
     st.write("Past Comparison:")
     past_styled = results_df.style.applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
