@@ -148,20 +148,20 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         results.append({
             'Business Date': business_date,
-            'Juyo RN': rn,
-            'Hilton RN': sold_sum,
-            'RN Difference': rn_diff,
-            'RN Percentage': rn_percentage,
+            'Juyo RN': int(rn),  # Convert RN to integer
+            'Hilton RN': int(sold_sum),  # Convert RN to integer
+            'RN Difference': int(rn_diff),  # Convert RN to integer
+            'RN Percentage': f"{rn_percentage:.2f}%",  # Format with 2 decimals and % sign
             'Juyo Rev': revnet,
             'Hilton Rev': rev_sum,
             'Rev Difference': rev_diff,
-            'Rev Percentage': rev_percentage
+            'Rev Percentage': f"{rev_percentage:.2f}%"  # Format with 2 decimals and % sign
         })
 
     results_df = pd.DataFrame(results)
 
-    past_accuracy_rn = results_df['RN Percentage'].mean()
-    past_accuracy_rev = results_df['Rev Percentage'].mean()
+    past_accuracy_rn = results_df['RN Percentage'].str.rstrip('%').astype(float).mean()
+    past_accuracy_rev = results_df['Rev Percentage'].str.rstrip('%').astype(float).mean()
 
     future_results = []
     for _, row in future_data.iterrows():
@@ -189,20 +189,20 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         future_results.append({
             'Business Date': occupancy_date,
-            'Juyo RN': rn,
-            'IDeaS RN': occupancy_sum,
-            'RN Difference': rn_diff,
-            'RN Percentage': rn_percentage,
+            'Juyo RN': int(rn),  # Convert RN to integer
+            'IDeaS RN': int(occupancy_sum),  # Convert RN to integer
+            'RN Difference': int(rn_diff),  # Convert RN to integer
+            'RN Percentage': f"{rn_percentage:.2f}%",  # Format with 2 decimals and % sign
             'Juyo Rev': revnet,
             'IDeaS Rev': booked_revenue_sum,
             'Rev Difference': rev_diff,
-            'Rev Percentage': rev_percentage
+            'Rev Percentage': f"{rev_percentage:.2f}%"  # Format with 2 decimals and % sign
         })
 
     future_results_df = pd.DataFrame(future_results)
 
-    future_accuracy_rn = future_results_df['RN Percentage'].mean()
-    future_accuracy_rev = future_results_df['Rev Percentage'].mean()
+    future_accuracy_rn = future_results_df['RN Percentage'].str.rstrip('%').astype(float).mean()
+    future_accuracy_rev = future_results_df['Rev Percentage'].str.rstrip('%').astype(float).mean()
 
     st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
 
@@ -294,13 +294,24 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     def selective_color_scale(val, subset):
         """Apply color scale only to percentage columns."""
         if subset in ['RN Percentage', 'Rev Percentage']:
-            if val >= 98:
-                return 'background-color: #469798' #green
-            elif 95 <= val < 98:
-                return 'background-color: #F2A541' #yellow
-            else:
-                return 'background-color: #BF3100' #red
+            if val.endswith('%'):
+                val_float = float(val.strip('%'))
+                if val_float >= 98:
+                    return 'background-color: #469798' #green
+                elif 95 <= val_float < 98:
+                    return 'background-color: #F2A541' #yellow
+                else:
+                    return 'background-color: #BF3100' #red
         return ''
+
+    # Format the RN columns to have no decimals
+    results_df['Juyo RN'] = results_df['Juyo RN'].map('{:.0f}'.format)
+    results_df['Hilton RN'] = results_df['Hilton RN'].map('{:.0f}'.format)
+    results_df['RN Difference'] = results_df['RN Difference'].map('{:.0f}'.format)
+
+    future_results_df['Juyo RN'] = future_results_df['Juyo RN'].map('{:.0f}'.format)
+    future_results_df['IDeaS RN'] = future_results_df['IDeaS RN'].map('{:.0f}'.format)
+    future_results_df['RN Difference'] = future_results_df['RN Difference'].map('{:.0f}'.format)
 
     st.write("Past Comparison:")
     past_styled = results_df.style.applymap(lambda val: selective_color_scale(val, 'RN Percentage'), subset=['RN Percentage']).applymap(lambda val: selective_color_scale(val, 'Rev Percentage'), subset=['Rev Percentage'])
