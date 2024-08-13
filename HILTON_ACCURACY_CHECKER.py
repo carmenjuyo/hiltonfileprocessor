@@ -27,8 +27,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
     try:
+        # Load the first Excel file
         excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
-        excel_data_2 = pd.read_excel(excel_file_2, sheet_name=0, engine='openpyxl', header=None)
+        # Load the second Excel file from the "Market Segment" sheet
+        excel_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
@@ -66,7 +68,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
-    op_data_2 = pd.read_excel(excel_file_2, sheet_name=0, engine='openpyxl', header=row_start_2)
+    op_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
 
     op_data.columns = [col.lower().strip() for col in op_data.columns]
     op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
@@ -197,7 +199,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
 # Streamlit app layout
-st.title('Hilton Accuracy Check Tool')
+st.title('Operational and Revenue Report Comparison Tool')
 
 csv_file = st.file_uploader("Upload Daily Totals Extract CSV", type="csv")
 excel_file = st.file_uploader("Upload Operational Report Excel", type="xlsx")
@@ -206,9 +208,9 @@ inncode = st.text_input("Enter Inncode to process:", value="")
 
 # VAT options
 apply_vat = st.checkbox("Apply VAT deduction to future revenue?")
-vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
+vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=20.0, step=0.1)
 
-perspective_date = st.date_input("Enter perspective date (date of IDeaS file receipt):", value=datetime.now().date())
+perspective_date = st.date_input("Enter perspective date (optional):", value=datetime.now().date())
 
 if st.button("Process"):
     if not csv_file or not excel_file or not excel_file_2 or not inncode:
