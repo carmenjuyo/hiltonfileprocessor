@@ -186,10 +186,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     future_accuracy_rev = future_results_df['Rev Percentage'].apply(lambda x: float(x.strip('%'))).mean()
 
     st.subheader('Comparison Results (Past):')
-    st.dataframe(results_df)
+    st.dataframe(results_df, use_container_width=True)
 
     st.subheader('Comparison Results (Future):')
-    st.dataframe(future_results_df)
+    st.dataframe(future_results_df, use_container_width=True)
 
     st.subheader('Accuracy Checks:')
     st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
