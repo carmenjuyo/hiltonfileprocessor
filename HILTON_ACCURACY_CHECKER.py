@@ -73,8 +73,10 @@ def read_excel_with_fallback(file_path, sheet_name=None, header=None):
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
     # Save uploaded Excel files to a temporary location
-    excel_path = '/mnt/data/operational_report.xlsx'
-    excel_file_path = '/mnt/data/ideas_report.xlsx'
+    temp_dir = st.temp_directory()
+
+    excel_path = os.path.join(temp_dir, 'operational_report.xlsx')
+    excel_file_path = os.path.join(temp_dir, 'ideas_report.xlsx')
     
     with open(excel_path, 'wb') as f:
         f.write(excel_file.getbuffer())
@@ -125,6 +127,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+
+    # Continue with your existing processing logic...
 
     headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None}
     headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
