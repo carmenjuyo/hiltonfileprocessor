@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import csv
 import io
 import plotly.graph_objects as go
+from openpyxl import Workbook
+import os
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
@@ -35,27 +37,51 @@ def load_csv(file):
     delimiter = dialect.delimiter
     return pd.read_csv(file_obj, delimiter=delimiter)
 
-# Function to try reading Excel with different engines
-def read_excel_with_fallback(file, sheet_name=None, header=None):
+# Function to re-save the Excel file contents back into the same file
+def resave_excel_in_place(file_path):
+    try:
+        # Read the file using openpyxl
+        with pd.ExcelFile(file_path, engine='openpyxl') as xls:
+            writer = pd.ExcelWriter(file_path, engine='openpyxl', mode='w')
+            for sheet_name in xls.sheet_names:
+                df = pd.read_excel(xls, sheet_name=sheet_name)
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+            writer.save()
+        return file_path
+    except Exception as e:
+        st.error(f"Failed to re-save the Excel file in place: {e}")
+        return None
+
+# Function to try reading Excel with different engines and re-save if necessary
+def read_excel_with_fallback(file_path, sheet_name=None, header=None):
     try:
         # Try reading with openpyxl first
-        return pd.read_excel(file, sheet_name=sheet_name, engine='openpyxl', header=header)
+        return pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl', header=header)
     except Exception as e1:
-        st.warning(f"Error reading with openpyxl: {e1}. Attempting to read with xlrd.")
-        try:
-            # If openpyxl fails, try with xlrd
-            return pd.read_excel(file, sheet_name=sheet_name, engine='xlrd', header=header)
-        except Exception as e2:
-            st.warning(f"Error reading with xlrd: {e2}. Attempting to read with default engine.")
+        st.warning(f"Error reading with openpyxl: {e1}. Attempting to re-save the file.")
+        # Attempt to re-save the file in place
+        resaved_file = resave_excel_in_place(file_path)
+        if resaved_file:
             try:
-                # If xlrd fails, try with the default engine
-                return pd.read_excel(file, sheet_name=sheet_name, header=header)
-            except Exception as e3:
-                st.error(f"Error reading with default engine: {e3}. Unable to read the Excel file.")
+                return pd.read_excel(resaved_file, sheet_name=sheet_name, engine='openpyxl', header=header)
+            except Exception as e2:
+                st.error(f"Failed to read the re-saved file: {e2}")
                 return None
+        else:
+            return None
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
+    # Save uploaded Excel files to a temporary location
+    excel_path = '/mnt/data/operational_report.xlsx'
+    excel_file_path = '/mnt/data/ideas_report.xlsx'
+    
+    with open(excel_path, 'wb') as f:
+        f.write(excel_file.getbuffer())
+    
+    with open(excel_file_path, 'wb') as f:
+        f.write(excel_file_2.getbuffer())
+    
     csv_data = load_csv(csv_file)
     arrival_date_col = 'arrivalDate'
     rn_col = 'rn'
@@ -68,7 +94,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
     # Try reading the first Excel file with fallback
-    excel_data = read_excel_with_fallback(excel_file, sheet_name=0, header=None)
+    excel_data = read_excel_with_fallback(excel_path, sheet_name=0, header=None)
     if excel_data is None:
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
@@ -78,12 +104,12 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     try:
         # Debugging: Display sheet names
-        excel_sheets = pd.ExcelFile(excel_file_2).sheet_names
+        excel_sheets = pd.ExcelFile(excel_file_path).sheet_names
         st.write(f"Excel file sheets: {excel_sheets}")
 
         # Loop through sheets to find "Market Segment" sheet
         for sheet in excel_sheets:
-            data = read_excel_with_fallback(excel_file_2, sheet_name=sheet, header=None)
+            data = read_excel_with_fallback(excel_file_path, sheet_name=sheet, header=None)
             if data is not None and "market segment" in sheet.lower():
                 excel_data_2 = data
                 sheet_name = sheet
@@ -132,11 +158,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    op_data = read_excel_with_fallback(excel_file, sheet_name=0, header=row_start)
+    op_data = read_excel_with_fallback(excel_path, sheet_name=0, header=row_start)
     if op_data is None:
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
     
-    op_data_2 = read_excel_with_fallback(excel_file_2, sheet_name=sheet_name, header=row_start_2)
+    op_data_2 = read_excel_with_fallback(excel_file_path, sheet_name=sheet_name, header=row_start_2)
     if op_data_2 is None:
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
