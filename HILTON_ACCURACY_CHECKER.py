@@ -224,8 +224,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy',
-        line=dict(color='magenta'),
-        marker=dict(color='magenta', size=8)
+        line=dict(color='red'),
+        marker=dict(color='red', size=8)
     ))
 
     fig.update_layout(
@@ -242,6 +242,13 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    # Display past and future results as tables after the graph
+    st.subheader('Detailed Accuracy Comparison (Past and Future)')
+    st.write("Past Comparison:")
+    st.dataframe(results_df[['Business Date', 'RN Percentage', 'Rev Percentage']].style.background_gradient(cmap='RdYlGn', axis=1), use_container_width=True)
+    st.write("Future Comparison:")
+    st.dataframe(future_results_df[['Business Date', 'RN Percentage', 'Rev Percentage']].style.background_gradient(cmap='RdYlGn', axis=1), use_container_width=True)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
