@@ -50,7 +50,18 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     try:
         excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
-        excel_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
+        excel_data_2 = None
+
+        # Loop through sheets to find "Market Segment" sheet
+        for sheet_name in pd.ExcelFile(excel_file_2).sheet_names:
+            data = pd.read_excel(excel_file_2, sheet_name=sheet_name, engine='openpyxl', header=None)
+            if "market segment" in sheet_name.lower():  # Check if the sheet name matches
+                excel_data_2 = data
+                break
+        
+        if excel_data_2 is None:
+            raise ValueError("Market Segment sheet not found in IDeaS Report.")
+
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
@@ -88,7 +99,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
-    op_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
+    op_data_2 = pd.read_excel(excel_file_2, sheet_name=sheet_name, engine='openpyxl', header=row_start_2)
 
     op_data.columns = [col.lower().strip() for col in op_data.columns]
     op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
@@ -163,7 +174,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     past_accuracy_rn = results_df['RN Percentage'].str.rstrip('%').astype(float).mean()
     past_accuracy_rev = results_df['Rev Percentage'].str.rstrip('%').astype(float).mean()
 
-    future_results = []
+        future_results = []
     for _, row in future_data.iterrows():
         occupancy_date = row[arrival_date_col]
         if occupancy_date not in future_common_dates:
@@ -218,11 +229,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         if isinstance(val, str) and '%' in val:
             val = float(val.strip('%'))
             if val >= 98:
-                return 'background-color: #469798' #green
+                return 'background-color: #469798'  # green
             elif 95 <= val < 98:
-                return 'background-color: #F2A541' #yellow
+                return 'background-color: #F2A541'  # yellow
             else:
-                return 'background-color: #BF3100' #red
+                return 'background-color: #BF3100'  # red
         return ''
 
     accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
@@ -249,8 +260,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Past)',
-        line=dict(color='#BF3100'), #red
-        marker=dict(color='#BF3100', size=8) #red
+        line=dict(color='#BF3100'),  # red
+        marker=dict(color='#BF3100', size=8)  # red
     ))
 
     # RN Discrepancy (Future)
@@ -269,8 +280,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Future)',
-        line=dict(color='#BF3100'), #red
-        marker=dict(color='#BF3100', size=8) #red
+        line=dict(color='#BF3100'),  # red
+        marker=dict(color='#BF3100', size=8)  # red
     ))
 
     fig.update_layout(
@@ -297,11 +308,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             if val.endswith('%'):
                 val_float = float(val.strip('%'))
                 if val_float >= 98:
-                    return 'background-color: #469798' #green
+                    return 'background-color: #469798'  # green
                 elif 95 <= val_float < 98:
-                    return 'background-color: #F2A541' #yellow
+                    return 'background-color: #F2A541'  # yellow
                 else:
-                    return 'background-color: #BF3100' #red
+                    return 'background-color: #BF3100'  # red
         return ''
 
     # Format the RN columns to have no decimals
