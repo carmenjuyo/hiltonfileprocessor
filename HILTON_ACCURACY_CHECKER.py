@@ -35,6 +35,20 @@ def load_csv(file):
     delimiter = dialect.delimiter
     return pd.read_csv(file_obj, delimiter=delimiter)
 
+# Function to try reading Excel with different engines
+def read_excel_with_fallback(file, sheet_name=None, header=None):
+    try:
+        # Try reading with openpyxl first
+        return pd.read_excel(file, sheet_name=sheet_name, engine='openpyxl', header=header)
+    except Exception as e:
+        st.warning(f"Error reading with openpyxl: {e}. Attempting to read with xlrd.")
+        try:
+            # If openpyxl fails, try with xlrd
+            return pd.read_excel(file, sheet_name=sheet_name, engine='xlrd', header=header)
+        except Exception as e:
+            st.error(f"Error reading with xlrd: {e}. Unable to read the Excel file.")
+            return None
+
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
     csv_data = load_csv(csv_file)
@@ -48,15 +62,22 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
-    try:
-        excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
-        excel_data_2 = None
+    # Try reading the first Excel file with fallback
+    excel_data = read_excel_with_fallback(excel_file, sheet_name=0, header=None)
+    if excel_data is None:
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
+    # Initialize excel_data_2 and sheet_name for later use
+    excel_data_2 = None
+    sheet_name = None
+
+    try:
         # Loop through sheets to find "Market Segment" sheet
-        for sheet_name in pd.ExcelFile(excel_file_2).sheet_names:
-            data = pd.read_excel(excel_file_2, sheet_name=sheet_name, engine='openpyxl', header=None)
-            if "market segment" in sheet_name.lower():  # Check if the sheet name matches
+        for sheet in pd.ExcelFile(excel_file_2).sheet_names:
+            data = read_excel_with_fallback(excel_file_2, sheet_name=sheet, header=None)
+            if data is not None and "market segment" in sheet.lower():
                 excel_data_2 = data
+                sheet_name = sheet
                 break
         
         if excel_data_2 is None:
@@ -98,8 +119,13 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
-    op_data_2 = pd.read_excel(excel_file_2, sheet_name=sheet_name, engine='openpyxl', header=row_start_2)
+    op_data = read_excel_with_fallback(excel_file, sheet_name=0, header=row_start)
+    if op_data is None:
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+    
+    op_data_2 = read_excel_with_fallback(excel_file_2, sheet_name=sheet_name, header=row_start_2)
+    if op_data_2 is None:
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     op_data.columns = [col.lower().strip() for col in op_data.columns]
     op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
@@ -355,3 +381,8 @@ if st.button("Process"):
         results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
             csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
         )
+
+        if not results_df.empty and not future_results_df.empty:
+            st.success('Processing completed successfully!')
+        else:
+            st.warning('Processing completed but no data was found for the given inputs.')
