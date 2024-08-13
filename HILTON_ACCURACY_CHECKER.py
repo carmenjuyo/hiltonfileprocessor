@@ -8,6 +8,24 @@ import plotly.graph_objects as go
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
+# Inject custom CSS to change the icon colors
+st.markdown(
+    """
+    <style>
+    /* Make the cloud upload icons cyan */
+    [data-testid="stFileUploadDropzone"] svg {
+        color: cyan !important;
+    }
+
+    /* Make the file icons green */
+    [data-testid="stFileUploadDisplay"] svg {
+        color: green !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Function to detect delimiter and load CSV file
 def load_csv(file):
     content = file.read().decode('utf-8')
