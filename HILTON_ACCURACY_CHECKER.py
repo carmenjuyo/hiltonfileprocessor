@@ -27,9 +27,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
     try:
-        # Load the first Excel file
         excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
-        # Load the second Excel file from the "Market Segment" sheet
         excel_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
@@ -208,7 +206,9 @@ inncode = st.text_input("Enter Inncode to process:", value="")
 
 # VAT options
 apply_vat = st.checkbox("Apply VAT deduction to future revenue?")
-vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
+vat_rate = None
+if apply_vat:
+    vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=20.0, step=0.1)
 
 perspective_date = st.date_input("Enter perspective date (optional):", value=datetime.now().date())
 
