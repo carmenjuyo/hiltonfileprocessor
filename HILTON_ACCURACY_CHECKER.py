@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import csv
 import io
 import plotly.graph_objects as go
-import plotly.express as px
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
@@ -245,10 +244,24 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     # Display past and future results as tables after the graph
     st.subheader('Detailed Accuracy Comparison (Past and Future)')
+
+    def color_scale(val):
+        """Color scale for percentages."""
+        if val >= 98:
+            color = 'background-color: green'
+        elif 95 <= val < 98:
+            color = 'background-color: yellow'
+        else:
+            color = 'background-color: red'
+        return color
+
     st.write("Past Comparison:")
-    st.dataframe(results_df[['Business Date', 'RN Percentage', 'Rev Percentage']].style.background_gradient(cmap='RdYlGn', axis=1), use_container_width=True)
+    past_styled = results_df.style.applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+    st.dataframe(past_styled, use_container_width=True)
+
     st.write("Future Comparison:")
-    st.dataframe(future_results_df[['Business Date', 'RN Percentage', 'Rev Percentage']].style.background_gradient(cmap='RdYlGn', axis=1), use_container_width=True)
+    future_styled = future_results_df.style.applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+    st.dataframe(future_styled, use_container_width=True)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
