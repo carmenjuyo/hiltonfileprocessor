@@ -241,8 +241,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['RN Difference'],
         mode='lines+markers',
         name='RNs Discrepancy (Future)',
-        line=dict(color='orange'),
-        marker=dict(color='orange', size=8)
+        line=dict(color='cyan'),
+        marker=dict(color='cyan', size=8)
     ))
 
     # Revenue Discrepancy (Future)
@@ -251,8 +251,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Future)',
-        line=dict(color='magenta'),
-        marker=dict(color='magenta', size=8)
+        line=dict(color='red'),
+        marker=dict(color='red', size=8)
     ))
 
     fig.update_layout(
