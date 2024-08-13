@@ -3,11 +3,11 @@ import pandas as pd
 from datetime import datetime, timedelta
 import csv
 import io
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.graph_objects as go
+import plotly.express as px
 
-# Set Streamlit page configuration to wide layout
-st.set_page_config(layout="wide")
+# Set Streamlit page configuration to wide layout and dark theme
+st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
 # Function to detect delimiter and load CSV file
 def load_csv(file):
@@ -203,23 +203,45 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     styled_df = pd.concat([past_results, future_results]).style.background_gradient(cmap='RdYlGn', axis=1)
     st.dataframe(styled_df, use_container_width=True)
 
-    # Plotting the discrepancy over time using dual axis for RN and Revenue
+    # Plotting the discrepancy over time using Plotly
     st.subheader('RNs and Revenue Discrepancy Over Time')
 
-    fig, ax1 = plt.subplots(figsize=(14, 6))
-    
-    ax1.set_xlabel('Date')
-    ax1.set_ylabel('RNs Discrepancy', color='blue')
-    ax1.plot(results_df['Business Date'], results_df['RN Difference'], color='blue', label='RNs Discrepancy')
-    ax1.tick_params(axis='y', labelcolor='blue')
+    fig = go.Figure()
 
-    ax2 = ax1.twinx()  
-    ax2.set_ylabel('Revenue Discrepancy', color='red')
-    ax2.plot(results_df['Business Date'], results_df['Rev Difference'], color='red', label='Revenue Discrepancy')
-    ax2.tick_params(axis='y', labelcolor='red')
+    # RN Discrepancy
+    fig.add_trace(go.Scatter(
+        x=results_df['Business Date'],
+        y=results_df['RN Difference'],
+        mode='lines+markers',
+        name='RNs Discrepancy',
+        line=dict(color='cyan'),
+        marker=dict(color='cyan', size=8)
+    ))
 
-    fig.tight_layout()  
-    st.pyplot(fig)
+    # Revenue Discrepancy
+    fig.add_trace(go.Scatter(
+        x=results_df['Business Date'],
+        y=results_df['Rev Difference'],
+        mode='lines+markers',
+        name='Revenue Discrepancy',
+        line=dict(color='magenta'),
+        marker=dict(color='magenta', size=8)
+    ))
+
+    fig.update_layout(
+        template='plotly_dark',
+        title='RNs and Revenue Discrepancy Over Time',
+        xaxis_title='Date',
+        yaxis_title='Discrepancy',
+        legend=dict(
+            x=0,
+            y=1.1,
+            orientation='h'
+        ),
+        hovermode='x unified'
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
