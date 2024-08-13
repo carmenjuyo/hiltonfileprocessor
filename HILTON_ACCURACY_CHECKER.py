@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import csv
 import io
+import matplotlib.pyplot as plt
 
 # Set Streamlit page configuration to wide layout
 st.set_page_config(layout="wide")
@@ -196,6 +197,21 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     st.write(f"Past Rev Accuracy: {past_accuracy_rev:.2f}%")
     st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
     st.write(f"Future Rev Accuracy: {future_accuracy_rev:.2f}%")
+
+    # Plotting the accuracy results
+    fig, ax = plt.subplots()
+    categories = ['Past RN', 'Past Rev', 'Future RN', 'Future Rev']
+    accuracies = [past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev]
+    
+    ax.bar(categories, accuracies, color=['blue', 'green', 'orange', 'red'])
+    ax.set_ylim([0, 100])
+    ax.set_ylabel('Accuracy Percentage')
+    ax.set_title('Accuracy Checks Results')
+
+    for i, v in enumerate(accuracies):
+        ax.text(i, v + 1, f"{v:.2f}%", ha='center', va='bottom')
+
+    st.pyplot(fig)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
