@@ -208,7 +208,7 @@ inncode = st.text_input("Enter Inncode to process:", value="")
 
 # VAT options
 apply_vat = st.checkbox("Apply VAT deduction to future revenue?")
-vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=20.0, step=0.1)
+vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
 
 perspective_date = st.date_input("Enter perspective date (optional):", value=datetime.now().date())
 
