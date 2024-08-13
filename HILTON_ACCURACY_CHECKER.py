@@ -250,7 +250,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         if val >= 98:
             color = 'background-color: green'
         elif 95 <= val < 98:
-            color = 'background-color: gold'
+            color = 'background-color: moccasin'
         else:
             color = 'background-color: red'
         return color
