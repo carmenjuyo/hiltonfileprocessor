@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import csv
 import io
 import plotly.graph_objects as go
-import os
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
@@ -36,53 +35,8 @@ def load_csv(file):
     delimiter = dialect.delimiter
     return pd.read_csv(file_obj, delimiter=delimiter)
 
-# Function to re-save the Excel file to ensure proper structure
-def resave_excel_file(file, temp_dir):
-    try:
-        excel_data = pd.read_excel(file, engine='openpyxl', sheet_name=None)  # Load all sheets
-        resaved_file_path = os.path.join(temp_dir, "resaved_file.xlsx")
-        
-        with pd.ExcelWriter(resaved_file_path, engine='openpyxl') as writer:
-            for sheet_name, data in excel_data.items():
-                data.to_excel(writer, sheet_name=sheet_name, index=False)
-        
-        return resaved_file_path
-    except Exception as e:
-        st.error(f"Error resaving Excel file: {e}")
-        return None
-
-# Function to read Excel with fallback and resave if necessary
-def read_excel_with_fallback(file, temp_dir, sheet_name=None, header=None):
-    try:
-        # Try reading with openpyxl first
-        return pd.read_excel(file, sheet_name=sheet_name, engine='openpyxl', header=header)
-    except Exception as e1:
-        st.warning(f"Error reading with openpyxl: {e1}. Attempting to re-save the file.")
-        # Attempt to re-save the file and then read it again
-        resaved_file = resave_excel_file(file, temp_dir)
-        if resaved_file:
-            try:
-                return pd.read_excel(resaved_file, sheet_name=sheet_name, engine='openpyxl', header=header)
-            except Exception as e2:
-                st.error(f"Failed to read the re-saved file: {e2}")
-                return None
-        else:
-            return None
-
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
-    # Use Streamlit's temporary directory to store files
-    temp_dir = os.path.dirname(st.__file__)
-
-    excel_path = os.path.join(temp_dir, 'operational_report.xlsx')
-    excel_file_path = os.path.join(temp_dir, 'ideas_report.xlsx')
-    
-    with open(excel_path, 'wb') as f:
-        f.write(excel_file.getbuffer())
-    
-    with open(excel_file_path, 'wb') as f:
-        f.write(excel_file_2.getbuffer())
-    
     csv_data = load_csv(csv_file)
     arrival_date_col = 'arrivalDate'
     rn_col = 'rn'
@@ -94,40 +48,12 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
-    # Try reading the first Excel file with fallback
-    excel_data = read_excel_with_fallback(excel_path, temp_dir, sheet_name=0, header=None)
-    if excel_data is None:
-        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
-
-    # Initialize excel_data_2 and sheet_name for later use
-    excel_data_2 = None
-    sheet_name = None
-
     try:
-        # Debugging: Display sheet names
-        excel_sheets = pd.ExcelFile(excel_file_path).sheet_names
-        st.write(f"Excel file sheets: {excel_sheets}")
-
-        # Loop through sheets to find "Market Segment" sheet
-        for sheet in excel_sheets:
-            data = read_excel_with_fallback(excel_file_path, temp_dir, sheet_name=sheet, header=None)
-            if data is not None and "market segment" in sheet.lower():
-                excel_data_2 = data
-                sheet_name = sheet
-                break
-        
-        if excel_data_2 is None:
-            raise ValueError("Market Segment sheet not found in IDeaS Report.")
-
-        # Debugging: Display preview of the sheet
-        st.write(f"Preview of '{sheet_name}' sheet:")
-        st.write(excel_data_2.head())
-
+        excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
+        excel_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
-
-    # Continue with your existing processing logic...
 
     headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None}
     headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
@@ -161,13 +87,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    op_data = read_excel_with_fallback(excel_path, sheet_name=0, header=row_start)
-    if op_data is None:
-        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
-    
-    op_data_2 = read_excel_with_fallback(excel_file_path, sheet_name=sheet_name, header=row_start_2)
-    if op_data_2 is None:
-        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+    op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
+    op_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
 
     op_data.columns = [col.lower().strip() for col in op_data.columns]
     op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
@@ -297,11 +218,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         if isinstance(val, str) and '%' in val:
             val = float(val.strip('%'))
             if val >= 98:
-                return 'background-color: #469798'  # green
+                return 'background-color: #469798' #green
             elif 95 <= val < 98:
-                return 'background-color: #F2A541'  # yellow
+                return 'background-color: #F2A541' #yellow
             else:
-                return 'background-color: #BF3100'  # red
+                return 'background-color: #BF3100' #red
         return ''
 
     accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
@@ -328,8 +249,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Past)',
-        line=dict(color='#BF3100'),  # red
-        marker=dict(color='#BF3100', size=8)  # red
+        line=dict(color='#BF3100'), #red
+        marker=dict(color='#BF3100', size=8) #red
     ))
 
     # RN Discrepancy (Future)
@@ -348,8 +269,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Future)',
-        line=dict(color='#BF3100'),  # red
-        marker=dict(color='#BF3100', size=8)  # red
+        line=dict(color='#BF3100'), #red
+        marker=dict(color='#BF3100', size=8) #red
     ))
 
     fig.update_layout(
@@ -376,11 +297,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             if val.endswith('%'):
                 val_float = float(val.strip('%'))
                 if val_float >= 98:
-                    return 'background-color: #469798'  # green
+                    return 'background-color: #469798' #green
                 elif 95 <= val_float < 98:
-                    return 'background-color: #F2A541'  # yellow
+                    return 'background-color: #F2A541' #yellow
                 else:
-                    return 'background-color: #BF3100'  # red
+                    return 'background-color: #BF3100' #red
         return ''
 
     # Format the RN columns to have no decimals
@@ -423,8 +344,3 @@ if st.button("Process"):
         results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
             csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
         )
-
-        if not results_df.empty and not future_results_df.empty:
-            st.success('Processing completed successfully!')
-        else:
-            st.warning('Processing completed but no data was found for the given inputs.')
