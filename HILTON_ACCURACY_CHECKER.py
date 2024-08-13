@@ -19,7 +19,7 @@ st.markdown(
 
     /* Make the file icons green */
     .stFileUploadDisplay > div:first-child > svg {
-        color: green !important;
+        color: #2A9D8F !important;
     }
     </style>
     """,
@@ -218,11 +218,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         if isinstance(val, str) and '%' in val:
             val = float(val.strip('%'))
             if val >= 98:
-                return 'background-color: green'
+                return 'background-color: #2A9D8F'
             elif 95 <= val < 98:
-                return 'background-color: darkgoldenrod'
+                return 'background-color: #EC9F05'
             else:
-                return 'background-color: red'
+                return 'background-color: #BF3100'
         return ''
 
     accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
@@ -249,8 +249,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Past)',
-        line=dict(color='red'),
-        marker=dict(color='red', size=8)
+        line=dict(color='#BF3100'),
+        marker=dict(color='#BF3100', size=8)
     ))
 
     # RN Discrepancy (Future)
@@ -269,8 +269,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         y=future_results_df['Rev Difference'],
         mode='lines+markers',
         name='Revenue Discrepancy (Future)',
-        line=dict(color='red'),
-        marker=dict(color='red', size=8)
+        line=dict(color='#BF3100'),
+        marker=dict(color='#BF3100', size=8)
     ))
 
     fig.update_layout(
@@ -295,11 +295,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         """Apply color scale only to percentage columns."""
         if subset in ['RN Percentage', 'Rev Percentage']:
             if val >= 98:
-                return 'background-color: green'
+                return 'background-color: #2A9D8F'
             elif 95 <= val < 98:
-                return 'background-color: darkgoldenrod'
+                return 'background-color: #EC9F05'
             else:
-                return 'background-color: red'
+                return 'background-color: #BF3100'
         return ''
 
     st.write("Past Comparison:")
