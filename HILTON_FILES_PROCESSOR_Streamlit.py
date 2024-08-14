@@ -11,8 +11,6 @@ class FileProcessorApp:
         self.data_frames = []
         self.merged_data = pd.DataFrame()
         self.room_revenue_data = pd.DataFrame()
-        self.raw_data_container = None
-        self.revenue_data_container = None
 
     def display_header(self):
         st.title("Hilton File Processor")
@@ -24,7 +22,7 @@ class FileProcessorApp:
             self.file_paths = uploaded_files
             st.success(f"Uploaded {len(uploaded_files)} files.")
 
-    def process_files(self, filter_criteria, inncode_filter):
+    def process_files(self, filter_criteria, inncode_filter, raw_data_container):
         self.data_frames = []
 
         for uploaded_file in self.file_paths:
@@ -48,7 +46,7 @@ class FileProcessorApp:
             except Exception as e:
                 st.error(f"Unexpected error: {e}")
 
-        self.display_data(filter_criteria, inncode_filter)
+        self.display_data(filter_criteria, inncode_filter, raw_data_container)
 
     def process_ledger_file(self, df):
         # Map the original column names to user-friendly names
@@ -150,7 +148,7 @@ class FileProcessorApp:
         }, inplace=True)
         self.data_frames.append(df)
 
-    def display_data(self, filter_criteria, inncode_filter):
+    def display_data(self, filter_criteria, inncode_filter, raw_data_container):
         if self.data_frames:
             # Concatenate all DataFrames into one
             self.merged_data = pd.concat(self.data_frames)
@@ -162,13 +160,13 @@ class FileProcessorApp:
                 self.merged_data = self.merged_data[self.merged_data['Inncode'] == inncode_filter]
             
             # Display Raw Data in its own container
-            with self.raw_data_container:
+            with raw_data_container:
                 st.write("### Raw Data")
                 st.dataframe(self.merged_data, use_container_width=True)
         else:
             st.warning("No data matched the filter criteria.")
 
-    def process_room_revenue(self, filter_criteria, inncode_filter):
+    def process_room_revenue(self, filter_criteria, inncode_filter, revenue_data_container):
         room_revenue_data_frames = []
 
         for uploaded_file in self.file_paths:
@@ -210,7 +208,7 @@ class FileProcessorApp:
             self.room_revenue_data = self.room_revenue_data.drop_duplicates(subset=['business_date', 'inncode'])
 
             # Display Room Revenue Data in its own container
-            with self.revenue_data_container:
+            with revenue_data_container:
                 st.write("### Room Revenue Data")
                 st.dataframe(self.room_revenue_data, use_container_width=True)
         else:
@@ -228,15 +226,15 @@ def main():
     filter_criteria = st.sidebar.text_input("Name Filter (e.g., LEDGER_Westmont):")
     inncode_filter = st.sidebar.text_input("Enter Inncode (optional):")
 
-    # Define containers for the two outputs
-    app.raw_data_container = st.container()
-    app.revenue_data_container = st.container()
+    # Define placeholders for the two outputs
+    raw_data_container = st.empty()
+    revenue_data_container = st.empty()
 
     if st.sidebar.button("Process Raw Data"):
-        app.process_files(filter_criteria, inncode_filter)
+        app.process_files(filter_criteria, inncode_filter, raw_data_container)
 
     if st.sidebar.button("Process Room Revenue by Day"):
-        app.process_room_revenue(filter_criteria, inncode_filter)
+        app.process_room_revenue(filter_criteria, inncode_filter, revenue_data_container)
 
 if __name__ == "__main__":
     main()
