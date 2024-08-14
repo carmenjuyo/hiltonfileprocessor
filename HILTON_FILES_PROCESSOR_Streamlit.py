@@ -152,7 +152,10 @@ class FileProcessorApp:
                 self.merged_data = self.merged_data[self.merged_data['Filename'].str.contains('|'.join(criteria), na=False)]
             if inncode_filter:
                 self.merged_data = self.merged_data[self.merged_data['Inncode'] == inncode_filter]
-            st.dataframe(self.merged_data)
+            
+            # Display dataframes in an expander to allow wider layout
+            with st.expander("View Raw Data"):
+                st.dataframe(self.merged_data, use_container_width=True)
         else:
             st.warning("No data matched the filter criteria.")
 
@@ -197,7 +200,9 @@ class FileProcessorApp:
             # Deduplicate by Business Date and Inncode if necessary
             self.room_revenue_data = self.room_revenue_data.drop_duplicates(subset=['business_date', 'inncode'])
 
-            st.dataframe(self.room_revenue_data)
+            # Display dataframes in an expander to allow wider layout
+            with st.expander("View Room Revenue Data"):
+                st.dataframe(self.room_revenue_data, use_container_width=True)
         else:
             st.warning("No data matched the filter criteria or there is no room revenue data.")
 
