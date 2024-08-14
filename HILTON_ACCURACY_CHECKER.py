@@ -4,9 +4,8 @@ from datetime import datetime, timedelta
 import csv
 import io
 import plotly.graph_objects as go
+from io import BytesIO
 import zipfile
-import os
-import shutil
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
@@ -29,36 +28,22 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Repair function for corrupted Excel files
-def repair_xlsx(file_path):
-    # Step 1: Unzip the .xlsx file
-    unzip_dir = '/mnt/data/unzipped_xlsx'
-    with zipfile.ZipFile(file_path, 'r') as zip_ref:
-        zip_ref.extractall(unzip_dir)
-    
-    # Step 2: Check for missing sharedStrings.xml and create it if necessary
-    shared_strings_path = os.path.join(unzip_dir, 'xl/sharedStrings.xml')
-    if not os.path.exists(shared_strings_path):
-        print("sharedStrings.xml is missing, creating a minimal version.")
-        os.makedirs(os.path.dirname(shared_strings_path), exist_ok=True)
-        with open(shared_strings_path, 'w') as f:
-            # Create a minimal sharedStrings.xml file
-            f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n')
-            f.write('<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="0" uniqueCount="0">\n')
-            f.write('</sst>')
-    
-    # Step 3: Rezip the contents back into a .xlsx file
-    repaired_file_path = file_path.replace('.xlsx', '_repaired.xlsx')
-    shutil.make_archive(repaired_file_path.replace('.xlsx', ''), 'zip', unzip_dir)
-    
-    # Rename back to .xlsx
-    os.rename(repaired_file_path.replace('.xlsx', '.zip'), repaired_file_path)
-    
-    # Cleanup
-    shutil.rmtree(unzip_dir)
-    
-    print(f"Repaired file saved to {repaired_file_path}")
-    return repaired_file_path
+# Repair function for corrupted Excel files using in-memory operations
+def repair_xlsx(file):
+    repaired_file = BytesIO()
+    with zipfile.ZipFile(file, 'r') as zip_ref:
+        with zipfile.ZipFile(repaired_file, 'w') as repaired_zip:
+            for item in zip_ref.infolist():
+                data = zip_ref.read(item.filename)
+                repaired_zip.writestr(item, data)
+            # Check and add sharedStrings.xml if missing
+            if 'xl/sharedStrings.xml' not in zip_ref.namelist():
+                shared_string_content = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+                shared_string_content += '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="0" uniqueCount="0">\n'
+                shared_string_content += '</sst>'
+                repaired_zip.writestr('xl/sharedStrings.xml', shared_string_content)
+    repaired_file.seek(0)
+    return repaired_file
 
 # Function to detect delimiter and load CSV file
 def load_csv(file):
@@ -82,7 +67,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
-    # Attempt to repair and read Excel files
+    # Attempt to repair and read Excel files using in-memory operations
     repaired_excel_file = repair_xlsx(excel_file)
     repaired_excel_file_2 = repair_xlsx(excel_file_2)
 
