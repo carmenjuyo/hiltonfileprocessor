@@ -6,7 +6,7 @@ import json
 st.set_page_config(layout="wide")
 
 class FileProcessorApp:
-    def __init__(self):  # Corrected this line by adding 'self'
+    def __init__(self):
         self.file_paths = []  # This will hold the uploaded files
         self.data_frames = []
         self.merged_data = pd.DataFrame()
@@ -232,10 +232,12 @@ def main():
     revenue_data_container = st.container()
 
     if st.sidebar.button("Process Raw Data"):
-        app.process_files(filter_criteria, inncode_filter, raw_data_container)
+        with st.spinner('Processing...'):
+            app.process_files(filter_criteria, inncode_filter, raw_data_container)
 
     if st.sidebar.button("Process LEDGER Room Rev by Day"):
-        app.process_room_revenue(filter_criteria, inncode_filter, revenue_data_container)
+        with st.spinner('Processing...'):
+            app.process_room_revenue(filter_criteria, inncode_filter, revenue_data_container)
 
 if __name__ == "__main__":
     main()
