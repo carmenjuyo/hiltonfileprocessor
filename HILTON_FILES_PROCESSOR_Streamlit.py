@@ -6,14 +6,14 @@ import json
 st.set_page_config(layout="wide")
 
 class FileProcessorApp:
-    def __init__(self):
+    def __init__():
         self.file_paths = []  # This will hold the uploaded files
         self.data_frames = []
         self.merged_data = pd.DataFrame()
         self.room_revenue_data = pd.DataFrame()
 
     def display_header(self):
-        st.title("Hilton ONQ File Processor")
+        st.title("Hilton ONQ File Processing Tool")
 
     def upload_files(self):
         # Make the uploader full-width and keep it at the top
@@ -155,10 +155,10 @@ class FileProcessorApp:
             # Apply filter criteria
             if filter_criteria:
                 criteria = filter_criteria.split(',')
-                self.merged_data = self.merged_data[self.merged_data['Filename'].str.contains('|'.join(criteria), na=False)]
+                self.merged_data = self.merged_data[self.merged_data['Source File'].str.contains('|'.join(criteria), na=False)]
             if inncode_filter:
                 self.merged_data = self.merged_data[self.merged_data['Inncode'] == inncode_filter]
-            
+
             # Display Raw Data in its own container
             with raw_data_container:
                 st.write("### Raw Data")
@@ -217,7 +217,7 @@ class FileProcessorApp:
 # Main Streamlit app
 def main():
     app = FileProcessorApp()
-    
+
     # Keep the file uploader at the top
     app.display_header()
     app.upload_files()
