@@ -13,7 +13,7 @@ class FileProcessorApp:
         self.room_revenue_data = pd.DataFrame()
 
     def display_header(self):
-        st.title("Hilton File Processor")
+        st.title("Hilton ONQ File Processor")
 
     def upload_files(self):
         # Make the uploader full-width and keep it at the top
@@ -224,8 +224,8 @@ def main():
 
     st.sidebar.title("Options")
 
-    filter_criteria = st.sidebar.text_input("Name Filter (e.g., LEDGER_Westmont):")
-    inncode_filter = st.sidebar.text_input("Enter Inncode (optional):")
+    filter_criteria = st.sidebar.text_input("Name Filter (e.g., LEDGER):")
+    inncode_filter = st.sidebar.text_input("Enter Inncode:")
 
     # Define placeholders for the two outputs
     raw_data_container = st.container()
@@ -234,7 +234,7 @@ def main():
     if st.sidebar.button("Process Raw Data"):
         app.process_files(filter_criteria, inncode_filter, raw_data_container)
 
-    if st.sidebar.button("Process Room Revenue by Day"):
+    if st.sidebar.button("Process LEDGER Room Rev by Day"):
         app.process_room_revenue(filter_criteria, inncode_filter, revenue_data_container)
 
 if __name__ == "__main__":
