@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import json
 
+# Set the layout to wide
+st.set_page_config(layout="wide")
+
 class FileProcessorApp:
     def __init__(self):
         self.file_paths = []  # This will hold the uploaded files
@@ -13,8 +16,8 @@ class FileProcessorApp:
         st.title("Hilton File Processor")
 
     def upload_files(self):
-        # Use Streamlit's file uploader to allow multiple file uploads
-        uploaded_files = st.file_uploader("Upload JSON files", type="json", accept_multiple_files=True)
+        # Make the uploader full-width
+        uploaded_files = st.file_uploader("Upload JSON files", type="json", accept_multiple_files=True, label_visibility="visible")
         if uploaded_files:
             self.file_paths = uploaded_files
             st.success(f"Uploaded {len(uploaded_files)} files.")
@@ -28,6 +31,9 @@ class FileProcessorApp:
                 file_content = uploaded_file.read().decode("utf-8")
                 data = json.loads(file_content)
                 df = pd.json_normalize(data)
+
+                # Add a new column to store the filename
+                df['Source File'] = uploaded_file.name
 
                 if 'extract_type' in df.columns:
                     if df['extract_type'][0] == 'LEDGER':
@@ -153,7 +159,6 @@ class FileProcessorApp:
             if inncode_filter:
                 self.merged_data = self.merged_data[self.merged_data['Inncode'] == inncode_filter]
             
-            # Display the dataframe
             st.write("### Raw Data")
             st.dataframe(self.merged_data, use_container_width=True)
         else:
@@ -218,11 +223,11 @@ def main():
     inncode_filter = st.sidebar.text_input("Enter Inncode (optional):")
 
     if st.sidebar.button("Process Raw Data"):
-        with st.container():  # Use container to stack the outputs
+        with st.container():
             app.process_files(filter_criteria, inncode_filter)
 
     if st.sidebar.button("Process Room Revenue by Day"):
-        with st.container():  # Use container to stack the outputs
+        with st.container():
             app.process_room_revenue(filter_criteria, inncode_filter)
 
 if __name__ == "__main__":
