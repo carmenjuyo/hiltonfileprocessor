@@ -11,6 +11,8 @@ class FileProcessorApp:
         self.data_frames = []
         self.merged_data = pd.DataFrame()
         self.room_revenue_data = pd.DataFrame()
+        self.raw_data_container = None
+        self.revenue_data_container = None
 
     def display_header(self):
         st.title("Hilton File Processor")
@@ -159,8 +161,10 @@ class FileProcessorApp:
             if inncode_filter:
                 self.merged_data = self.merged_data[self.merged_data['Inncode'] == inncode_filter]
             
-            st.write("### Raw Data")
-            st.dataframe(self.merged_data, use_container_width=True)
+            # Display Raw Data in its own container
+            with self.raw_data_container:
+                st.write("### Raw Data")
+                st.dataframe(self.merged_data, use_container_width=True)
         else:
             st.warning("No data matched the filter criteria.")
 
@@ -205,8 +209,10 @@ class FileProcessorApp:
             # Deduplicate by Business Date and Inncode if necessary
             self.room_revenue_data = self.room_revenue_data.drop_duplicates(subset=['business_date', 'inncode'])
 
-            st.write("### Room Revenue Data")
-            st.dataframe(self.room_revenue_data, use_container_width=True)
+            # Display Room Revenue Data in its own container
+            with self.revenue_data_container:
+                st.write("### Room Revenue Data")
+                st.dataframe(self.room_revenue_data, use_container_width=True)
         else:
             st.warning("No data matched the filter criteria or there is no room revenue data.")
 
@@ -222,13 +228,15 @@ def main():
     filter_criteria = st.sidebar.text_input("Name Filter (e.g., LEDGER_Westmont):")
     inncode_filter = st.sidebar.text_input("Enter Inncode (optional):")
 
+    # Define containers for the two outputs
+    app.raw_data_container = st.container()
+    app.revenue_data_container = st.container()
+
     if st.sidebar.button("Process Raw Data"):
-        with st.container():
-            app.process_files(filter_criteria, inncode_filter)
+        app.process_files(filter_criteria, inncode_filter)
 
     if st.sidebar.button("Process Room Revenue by Day"):
-        with st.container():
-            app.process_room_revenue(filter_criteria, inncode_filter)
+        app.process_room_revenue(filter_criteria, inncode_filter)
 
 if __name__ == "__main__":
     main()
