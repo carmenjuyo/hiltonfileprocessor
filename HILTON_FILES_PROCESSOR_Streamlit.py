@@ -6,7 +6,7 @@ import json
 st.set_page_config(layout="wide")
 
 class FileProcessorApp:
-    def __init__():
+    def __init__(self):  # Corrected this line by adding 'self'
         self.file_paths = []  # This will hold the uploaded files
         self.data_frames = []
         self.merged_data = pd.DataFrame()
