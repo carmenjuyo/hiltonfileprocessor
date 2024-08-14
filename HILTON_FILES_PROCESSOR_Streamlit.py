@@ -12,8 +12,9 @@ class FileProcessorApp:
         self.merged_data = pd.DataFrame()
         self.room_revenue_data = pd.DataFrame()
 
-    def display_header(self):
-        st.title("Hilton File Processor")
+    def display_header(self, header_container):
+        with header_container:
+            st.title("Hilton File Processor")
 
     def upload_files(self):
         # Make the uploader full-width
@@ -216,8 +217,13 @@ class FileProcessorApp:
 
 # Main Streamlit app
 def main():
+    # Create placeholders for each section
+    header_container = st.empty()
+    raw_data_container = st.empty()
+    revenue_data_container = st.empty()
+
     app = FileProcessorApp()
-    app.display_header()
+    app.display_header(header_container)
 
     st.sidebar.title("Options")
 
@@ -225,10 +231,6 @@ def main():
 
     filter_criteria = st.sidebar.text_input("Name Filter (e.g., LEDGER_Westmont):")
     inncode_filter = st.sidebar.text_input("Enter Inncode (optional):")
-
-    # Define placeholders for the two outputs
-    raw_data_container = st.empty()
-    revenue_data_container = st.empty()
 
     if st.sidebar.button("Process Raw Data"):
         app.process_files(filter_criteria, inncode_filter, raw_data_container)
