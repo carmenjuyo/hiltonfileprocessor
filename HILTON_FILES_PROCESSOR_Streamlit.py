@@ -153,9 +153,9 @@ class FileProcessorApp:
             if inncode_filter:
                 self.merged_data = self.merged_data[self.merged_data['Inncode'] == inncode_filter]
             
-            # Display dataframes in an expander to allow wider layout
-            with st.expander("View Raw Data"):
-                st.dataframe(self.merged_data, use_container_width=True)
+            # Display the dataframe
+            st.write("### Raw Data")
+            st.dataframe(self.merged_data, use_container_width=True)
         else:
             st.warning("No data matched the filter criteria.")
 
@@ -200,9 +200,8 @@ class FileProcessorApp:
             # Deduplicate by Business Date and Inncode if necessary
             self.room_revenue_data = self.room_revenue_data.drop_duplicates(subset=['business_date', 'inncode'])
 
-            # Display dataframes in an expander to allow wider layout
-            with st.expander("View Room Revenue Data"):
-                st.dataframe(self.room_revenue_data, use_container_width=True)
+            st.write("### Room Revenue Data")
+            st.dataframe(self.room_revenue_data, use_container_width=True)
         else:
             st.warning("No data matched the filter criteria or there is no room revenue data.")
 
@@ -219,10 +218,12 @@ def main():
     inncode_filter = st.sidebar.text_input("Enter Inncode (optional):")
 
     if st.sidebar.button("Process Raw Data"):
-        app.process_files(filter_criteria, inncode_filter)
+        with st.container():  # Use container to stack the outputs
+            app.process_files(filter_criteria, inncode_filter)
 
     if st.sidebar.button("Process Room Revenue by Day"):
-        app.process_room_revenue(filter_criteria, inncode_filter)
+        with st.container():  # Use container to stack the outputs
+            app.process_room_revenue(filter_criteria, inncode_filter)
 
 if __name__ == "__main__":
     main()
