@@ -4,6 +4,9 @@ from datetime import datetime, timedelta
 import csv
 import io
 import plotly.graph_objects as go
+import zipfile
+import os
+import shutil
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
@@ -25,6 +28,37 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+# Repair function for corrupted Excel files
+def repair_xlsx(file_path):
+    # Step 1: Unzip the .xlsx file
+    unzip_dir = '/mnt/data/unzipped_xlsx'
+    with zipfile.ZipFile(file_path, 'r') as zip_ref:
+        zip_ref.extractall(unzip_dir)
+    
+    # Step 2: Check for missing sharedStrings.xml and create it if necessary
+    shared_strings_path = os.path.join(unzip_dir, 'xl/sharedStrings.xml')
+    if not os.path.exists(shared_strings_path):
+        print("sharedStrings.xml is missing, creating a minimal version.")
+        os.makedirs(os.path.dirname(shared_strings_path), exist_ok=True)
+        with open(shared_strings_path, 'w') as f:
+            # Create a minimal sharedStrings.xml file
+            f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n')
+            f.write('<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="0" uniqueCount="0">\n')
+            f.write('</sst>')
+    
+    # Step 3: Rezip the contents back into a .xlsx file
+    repaired_file_path = file_path.replace('.xlsx', '_repaired.xlsx')
+    shutil.make_archive(repaired_file_path.replace('.xlsx', ''), 'zip', unzip_dir)
+    
+    # Rename back to .xlsx
+    os.rename(repaired_file_path.replace('.xlsx', '.zip'), repaired_file_path)
+    
+    # Cleanup
+    shutil.rmtree(unzip_dir)
+    
+    print(f"Repaired file saved to {repaired_file_path}")
+    return repaired_file_path
 
 # Function to detect delimiter and load CSV file
 def load_csv(file):
@@ -48,9 +82,13 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
+    # Attempt to repair and read Excel files
+    repaired_excel_file = repair_xlsx(excel_file)
+    repaired_excel_file_2 = repair_xlsx(excel_file_2)
+
     try:
-        excel_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=None)
-        excel_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
+        excel_data = pd.read_excel(repaired_excel_file, sheet_name=0, engine='openpyxl', header=None)
+        excel_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
     except Exception as e:
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
@@ -87,8 +125,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    op_data = pd.read_excel(excel_file, sheet_name=0, engine='openpyxl', header=row_start)
-    op_data_2 = pd.read_excel(excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
+    op_data = pd.read_excel(repaired_excel_file, sheet_name=0, engine='openpyxl', header=row_start)
+    op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
 
     op_data.columns = [col.lower().strip() for col in op_data.columns]
     op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
@@ -125,7 +163,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
     grouped_data_2 = future_data_2.groupby('occupancy date').agg({'occupancy on books this year': 'sum', 'booked room revenue this year': 'sum'}).reset_index()
 
-    results = []
+        results = []
     for _, row in csv_data_past.iterrows():
         business_date = row[arrival_date_col]
         if business_date not in common_dates:
@@ -344,3 +382,10 @@ if st.button("Process"):
         results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
             csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
         )
+        
+        # Display results if they are not empty
+        if not results_df.empty and not future_results_df.empty:
+            st.write("Processing complete.")
+        else:
+            st.warning("No data to display after processing. Please check the input files and parameters.")
+
