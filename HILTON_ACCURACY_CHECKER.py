@@ -163,7 +163,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
     grouped_data_2 = future_data_2.groupby('occupancy date').agg({'occupancy on books this year': 'sum', 'booked room revenue this year': 'sum'}).reset_index()
 
-        results = []
+    results = []
     for _, row in csv_data_past.iterrows():
         business_date = row[arrival_date_col]
         if business_date not in common_dates:
