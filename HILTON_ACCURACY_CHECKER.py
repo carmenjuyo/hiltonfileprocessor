@@ -359,25 +359,26 @@ st.title('Hilton Accuracy Check Tool')
 
 csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
 excel_file = st.file_uploader("Upload Operational Report (.xlsx)", type="xlsx")
-excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
-
-# Display perspective date field always
-perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
-
-# Initialize default values for optional variables
-inncode = ""
-apply_vat = False
-vat_rate = None
 
 # Display Inncode field only if Operational Report is uploaded
 if excel_file:
     inncode = st.text_input("Enter Inncode to process:", value="")
+else:
+    inncode = ""
+
+excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
 
 # Display VAT options only if IDeaS Report is uploaded
 if excel_file_2:
     apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
     if apply_vat:
         vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
+else:
+    apply_vat = False
+    vat_rate = None
+
+# Display perspective date field always
+perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
 
 if st.button("Process"):
     with st.spinner('Processing...'):
