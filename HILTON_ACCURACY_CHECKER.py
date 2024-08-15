@@ -271,7 +271,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
         st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
-    # Plotting the discrepancy over time using Plotly
+    # Plotting the discrepancy over time using Plotly with dual y-axes
     if not results_df.empty or not future_results_df.empty:
         st.subheader('RNs and Revenue Discrepancy Over Time')
 
@@ -285,7 +285,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 mode='lines+markers',
                 name='RNs Discrepancy (Past)',
                 line=dict(color='cyan'),
-                marker=dict(color='cyan', size=8)
+                marker=dict(color='cyan', size=8),
+                yaxis='y2'  # Secondary y-axis
             ))
 
             # Revenue Discrepancy (Past)
@@ -306,7 +307,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 mode='lines+markers',
                 name='RNs Discrepancy (Future)',
                 line=dict(color='cyan'),
-                marker=dict(color='cyan', size=8)
+                marker=dict(color='cyan', size=8),
+                yaxis='y2'  # Secondary y-axis
             ))
 
             # Revenue Discrepancy (Future)
@@ -323,7 +325,12 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             template='plotly_dark',
             title='RNs and Revenue Discrepancy Over Time',
             xaxis_title='Date',
-            yaxis_title='Discrepancy',
+            yaxis_title='Revenue Discrepancy',
+            yaxis2=dict(
+                title='RNs Discrepancy',
+                overlaying='y',
+                side='right'
+            ),
             legend=dict(
                 x=0,
                 y=1.1,
