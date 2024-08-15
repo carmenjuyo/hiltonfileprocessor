@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
+import csv
+import io
 import plotly.graph_objects as go
 from io import BytesIO
 import zipfile
@@ -19,7 +21,7 @@ st.markdown(
 
     /* Make the file icons green */
     .stFileUploadDisplay > div:first-child > svg {
-        color: #469798 !important;
+        color #469798 !important;
     } 
     </style>
     """,
@@ -43,10 +45,14 @@ def repair_xlsx(file):
     repaired_file.seek(0)
     return repaired_file
 
-# Function to load CSV file without seeking
+# Function to detect delimiter and load CSV file
 def load_csv(file):
-    # Directly use pandas to read the CSV from the file-like object
-    return pd.read_csv(file)
+    content = file.read().decode('utf-8')
+    file_obj = io.StringIO(content)
+    sample = content[:1024]
+    dialect = csv.Sniffer().sniff(sample)
+    delimiter = dialect.delimiter
+    return pd.read_csv(file_obj, delimiter=delimiter)
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2=None, inncode=None, perspective_date=None, apply_vat=False, vat_rate=0):
