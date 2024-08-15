@@ -78,18 +78,18 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
+    def find_header(label, data):
+        for col in data.columns:
+            for row in range(len(data)):
+                cell_value = str(data[col][row]).strip().lower()
+                if label in cell_value:
+                    return (row, col)
+        return None
+
     # Process past data if the operational report is available
-    if excel_file:
+    if excel_data is not None:
         headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None}
         row_start = None
-
-        def find_header(label, data):
-            for col in data.columns:
-                for row in range(len(data)):
-                    cell_value = str(data[col][row]).strip().lower()
-                    if label in cell_value:
-                        return (row, col)
-            return None
 
         for label in headers.keys():
             headers[label] = find_header(label, excel_data)
@@ -169,7 +169,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
     # Process future data if the IDeaS report is available
-    if excel_file_2:
+    if excel_data_2 is not None:
         headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
         row_start_2 = None
 
