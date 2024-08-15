@@ -374,34 +374,29 @@ if st.button("Process"):
         else:
             st.warning("No data to display after processing. Please check the input files and parameters.")
 
-
-
-
-import pandas as pd
-
-# Assuming these are the functions that generate the necessary outputs
+# Functions for past and future data variance and accuracy graphs
 def show_past_data_variance():
-    print("Displaying Past Data Variance Table")
+    st.write("Displaying Past Data Variance Table")
     # Your code to generate and display the past data variance table
 
 def show_past_accuracy_graph():
-    print("Displaying Past Accuracy Graph")
+    st.write("Displaying Past Accuracy Graph")
     # Your code to generate and display the past accuracy graph
 
 def show_past_summary():
-    print("Displaying Past Summary")
+    st.write("Displaying Past Summary")
     # Your code to generate and display the past summary
 
 def show_future_data_variance():
-    print("Displaying Future Data Variance Table")
+    st.write("Displaying Future Data Variance Table")
     # Your code to generate and display the future data variance table
 
 def show_future_accuracy_graph():
-    print("Displaying Future Accuracy Graph")
+    st.write("Displaying Future Accuracy Graph")
     # Your code to generate and display the future accuracy graph
 
 def show_future_summary():
-    print("Displaying Future Summary")
+    st.write("Displaying Future Summary")
     # Your code to generate and display the future summary
 
 # File detection logic
@@ -432,10 +427,10 @@ def load_files(csv_path=None, operational_report_path=None, ideas_report_path=No
         show_future_accuracy_graph()
         show_future_summary()
     else:
-        print("Please upload the required files to proceed.")
+        st.warning("Please upload the required files to proceed.")
 
 # Example usage:
 # Call this function with the paths to your files. Replace the arguments with actual file paths or None.
 load_files(csv_path='path/to/your/csv_file.csv', 
-           operational_report_path='path/to/your/operational_report.pdf', 
-           ideas_report_path='path/to/your/ideas_report.pdf')
+           operational_report_path='path/to/your/operational_report.xlsx', 
+           ideas_report_path='path/to/your/ideas_report.xlsx')
