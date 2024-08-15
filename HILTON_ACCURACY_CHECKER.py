@@ -247,62 +247,77 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
-    # Depending on the files uploaded, display the appropriate tables and graphs
-    if not results_df.empty:
-        st.subheader(f'Past Accuracy for the hotel with code: {inncode}')
-        st.write(f"Past Accuracy (RNs): {past_accuracy_rn:.2f}%")
-        st.write(f"Past Accuracy (Revenue): {past_accuracy_rev:.2f}%")
-        st.dataframe(results_df)
+    # Display the Accuracy Matrix with color grading
+    if not results_df.empty or not future_results_df.empty:
+        accuracy_matrix = pd.DataFrame({
+            'Metric': ['RNs', 'Revenue'],
+            'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'] if not results_df.empty else ['N/A', 'N/A'],
+            'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
+        })
 
-    if not future_results_df.empty:
-        st.subheader(f'Future Accuracy for the hotel with code: {inncode}')
-        st.write(f"Future Accuracy (RNs): {future_accuracy_rn:.2f}%")
-        st.write(f"Future Accuracy (Revenue): {future_accuracy_rev:.2f}%")
-        st.dataframe(future_results_df)
+        def color_scale(val):
+            """Color scale for percentages."""
+            if isinstance(val, str) and '%' in val:
+                val = float(val.strip('%'))
+                if val >= 98:
+                    return 'background-color: #469798'  # green
+                elif 95 <= val < 98:
+                    return 'background-color: #F2A541'  # yellow
+                else:
+                    return 'background-color: #BF3100'  # red
+            return ''
 
-    if not results_df.empty and not future_results_df.empty:
+        accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
+        st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
+        st.dataframe(accuracy_matrix_styled, use_container_width=True)
+
+    # Plotting the discrepancy over time using Plotly
+    if not results_df.empty or not future_results_df.empty:
         st.subheader('RNs and Revenue Discrepancy Over Time')
+
         fig = go.Figure()
 
-        # RN Discrepancy (Past)
-        fig.add_trace(go.Scatter(
-            x=results_df['Business Date'],
-            y=results_df['RN Difference'],
-            mode='lines+markers',
-            name='RNs Discrepancy (Past)',
-            line=dict(color='cyan'),
-            marker=dict(color='cyan', size=8)
-        ))
+        if not results_df.empty:
+            # RN Discrepancy (Past)
+            fig.add_trace(go.Scatter(
+                x=results_df['Business Date'],
+                y=results_df['RN Difference'],
+                mode='lines+markers',
+                name='RNs Discrepancy (Past)',
+                line=dict(color='cyan'),
+                marker=dict(color='cyan', size=8)
+            ))
 
-        # Revenue Discrepancy (Past)
-        fig.add_trace(go.Scatter(
-            x=results_df['Business Date'],
-            y=results_df['Rev Difference'],
-            mode='lines+markers',
-            name='Revenue Discrepancy (Past)',
-            line=dict(color='#BF3100'), #red
-            marker=dict(color='#BF3100', size=8) #red
-        ))
+            # Revenue Discrepancy (Past)
+            fig.add_trace(go.Scatter(
+                x=results_df['Business Date'],
+                y=results_df['Rev Difference'],
+                mode='lines+markers',
+                name='Revenue Discrepancy (Past)',
+                line=dict(color='#BF3100'),  # red
+                marker=dict(color='#BF3100', size=8)  # red
+            ))
 
-        # RN Discrepancy (Future)
-        fig.add_trace(go.Scatter(
-            x=future_results_df['Business Date'],
-            y=future_results_df['RN Difference'],
-            mode='lines+markers',
-            name='RNs Discrepancy (Future)',
-            line=dict(color='cyan'),
-            marker=dict(color='cyan', size=8)
-        ))
+        if not future_results_df.empty:
+            # RN Discrepancy (Future)
+            fig.add_trace(go.Scatter(
+                x=future_results_df['Business Date'],
+                y=future_results_df['RN Difference'],
+                mode='lines+markers',
+                name='RNs Discrepancy (Future)',
+                line=dict(color='cyan'),
+                marker=dict(color='cyan', size=8)
+            ))
 
-        # Revenue Discrepancy (Future)
-        fig.add_trace(go.Scatter(
-            x=future_results_df['Business Date'],
-            y=future_results_df['Rev Difference'],
-            mode='lines+markers',
-            name='Revenue Discrepancy (Future)',
-            line=dict(color='#BF3100'), #red
-            marker=dict(color='#BF3100', size=8) #red
-        ))
+            # Revenue Discrepancy (Future)
+            fig.add_trace(go.Scatter(
+                x=future_results_df['Business Date'],
+                y=future_results_df['Rev Difference'],
+                mode='lines+markers',
+                name='Revenue Discrepancy (Future)',
+                line=dict(color='#BF3100'),  # red
+                marker=dict(color='#BF3100', size=8)  # red
+            ))
 
         fig.update_layout(
             template='plotly_dark',
@@ -318,6 +333,17 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+    # Display past and future results as tables after the graph
+    if not results_df.empty:
+        st.subheader('Detailed Accuracy Comparison (Past)')
+        past_styled = results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
+        st.dataframe(past_styled, use_container_width=True)
+
+    if not future_results_df.empty:
+        st.subheader('Detailed Accuracy Comparison (Future)')
+        future_styled = future_results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
+        st.dataframe(future_styled, use_container_width=True)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
