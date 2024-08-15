@@ -60,21 +60,35 @@ uploaded_csv = st.file_uploader("Upload CSV", type=["csv"])
 uploaded_operational_report = st.file_uploader("Upload Operational Report", type=["xlsx"])
 uploaded_ideas_report = st.file_uploader("Upload IDEAs Report", type=["xlsx"])
 
+# Function to process past data and generate reports
+def process_past_data(csv_file, operational_report):
+    st.write("Processing Past Data...")
+    # Add your logic here to process past data, generate variance table, accuracy graph, and summary
+    st.write("Past Data Variance Table")
+    st.write("Past Accuracy Graph")
+    st.write("Past Summary")
+
+# Function to process future data and generate reports
+def process_future_data(csv_file, ideas_report):
+    st.write("Processing Future Data...")
+    # Add your logic here to process future data, generate variance table, accuracy graph, and summary
+    st.write("Future Data Variance Table")
+    st.write("Future Accuracy Graph")
+    st.write("Future Summary")
+
 # Check which files are uploaded
 if uploaded_csv is not None and uploaded_operational_report is not None and uploaded_ideas_report is None:
     # Only Past Data
-    st.write("Displaying Past Data Analysis")
-    # Here you will invoke functions to process and display the past variance table, past accuracy graph, and summary
+    process_past_data(uploaded_csv, uploaded_operational_report)
     
 elif uploaded_csv is not None and uploaded_operational_report is None and uploaded_ideas_report is not None:
     # Only Future Data
-    st.write("Displaying Future Data Analysis")
-    # Here you will invoke functions to process and display the future variance table, future accuracy graph, and summary
+    process_future_data(uploaded_csv, uploaded_ideas_report)
     
 elif uploaded_csv is not None and uploaded_operational_report is not None and uploaded_ideas_report is not None:
     # Both Past and Future Data
-    st.write("Displaying Past and Future Data Analysis")
-    # Here you will invoke functions to process and display both past and future analyses as currently done
+    process_past_data(uploaded_csv, uploaded_operational_report)
+    process_future_data(uploaded_csv, uploaded_ideas_report)
     
 else:
     st.write("Please upload the required files.")
