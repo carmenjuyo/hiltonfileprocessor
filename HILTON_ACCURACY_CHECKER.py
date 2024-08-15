@@ -93,8 +93,8 @@ else:
     st.write("Please upload the required files.")
 
 df, use_container_width=True)
-    st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
-    st.write(f"Past Revenue Accuracy: {past_accuracy_rev:.2f}%")
+        st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
+        st.write(f"Past Revenue Accuracy: {past_accuracy_rev:.2f}%")
 
     if not future_results_df.empty:
         st.write("Future Data Variance Table")
@@ -102,6 +102,43 @@ df, use_container_width=True)
         st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
         st.write(f"Future Revenue Accuracy: {future_accuracy_rev:.2f}%")
 
+
+# Streamlit app layout
+st.title('Hilton Accuracy Check Tool')
+
+csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
+excel_file = st.file_uploader("Upload Operational Report (.xlsx)", type="xlsx")
+excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
+inncode = st.text_input("Enter Inncode to process:", value="")
+
+# VAT options
+apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
+vat_rate = None
+if apply_vat:
+    vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
+
+perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
+
+if st.button("Process"):
+    with st.spinner('Processing...'):
+        if csv_file and excel_file and not excel_file_2:
+            display_past_analysis(csv_file, excel_file, inncode, perspective_date, apply_vat, vat_rate)
+        elif csv_file and not excel_file and excel_file_2:
+            display_future_analysis(csv_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate)
+        elif csv_file and excel_file and excel_file_2:
+            display_both_analyses(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate)
+        else:
+            st.warning("Please upload the necessary files for analysis.")
+
+        st.dataframe(past_results_df, use_container_width=True)
+        st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
+        st.write(f"Past Revenue Accuracy: {past_accuracy_rev:.2f}%")
+
+    if not future_results_df.empty:
+        st.write("Future Data Variance Table")
+        st.dataframe(future_results_df, use_container_width=True)
+        st.write(f"Future RN Accuracy: {future_accuracy_rn:.2f}%")
+        st.write(f"Future Revenue Accuracy: {future_accuracy_rev:.2f}%")
 
 # Streamlit app layout
 st.title('Hilton Accuracy Check Tool')
