@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
@@ -94,8 +93,8 @@ else:
     st.write("Please upload the required files.")
 
 df, use_container_width=True)
-        st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
-        st.write(f"Past Revenue Accuracy: {past_accuracy_rev:.2f}%")
+    st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
+    st.write(f"Past Revenue Accuracy: {past_accuracy_rev:.2f}%")
 
     if not future_results_df.empty:
         st.write("Future Data Variance Table")
