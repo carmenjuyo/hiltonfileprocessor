@@ -92,7 +92,7 @@ elif uploaded_csv is not None and uploaded_operational_report is not None and up
 else:
     st.write("Please upload the required files.")
 
-df, use_container_width=True)
+df, use_container_width=True
         st.write(f"Past RN Accuracy: {past_accuracy_rn:.2f}%")
         st.write(f"Past Revenue Accuracy: {past_accuracy_rev:.2f}%")
 
