@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime, timedelta
-import csv
-import io
 import plotly.graph_objects as go
 from io import BytesIO
 import zipfile
@@ -45,11 +43,9 @@ def repair_xlsx(file):
     repaired_file.seek(0)
     return repaired_file
 
-# Function to detect delimiter and load CSV file
+# Function to load CSV file without seeking
 def load_csv(file):
-    # Reset the file pointer to the beginning in case it was partially read before
-    file.seek(0)
-    # Use pandas to directly read the CSV from the file-like object
+    # Directly use pandas to read the CSV from the file-like object
     return pd.read_csv(file)
 
 # Function to dynamically find headers and process data
