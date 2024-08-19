@@ -319,21 +319,18 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
         worksheet = writer.sheets['Accuracy Matrix']
 
         # Define formats
-        format_percent = workbook.add_format({'num_format': '0.00%'})
-        format_whole = workbook.add_format({'num_format': '0'})  # Whole numbers
-        format_float = workbook.add_format({'num_format': '#,##0.00'})  # Floats
         format_green = workbook.add_format({'bg_color': '#469798', 'font_color': '#FFFFFF'})
         format_yellow = workbook.add_format({'bg_color': '#F2A541', 'font_color': '#FFFFFF'})
         format_red = workbook.add_format({'bg_color': '#BF3100', 'font_color': '#FFFFFF'})
 
-        # Apply conditional formatting for Accuracy Matrix
+        # Apply simplified conditional formatting for Accuracy Matrix
         worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
-        worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
-        worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+        worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
+        worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': '<', 'value': 0.96, 'format': format_red})
 
         worksheet.conditional_format('C3:C4', {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
-        worksheet.conditional_format('C3:C4', {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
-        worksheet.conditional_format('C3:C4', {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+        worksheet.conditional_format('C3:C4', {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
+        worksheet.conditional_format('C3:C4', {'type': 'cell', 'criteria': '<', 'value': 0.96, 'format': format_red})
 
         # Write past and future results to separate sheets
         if not results_df.empty:
@@ -355,20 +352,20 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_past.set_column('E:E', None, format_percent)  # Percentages
             worksheet_past.set_column('I:I', None, format_percent)  # Percentages
 
-            # Apply conditional formatting to percentages
+            # Apply simplified conditional formatting to percentages in columns E and I
             worksheet_past.conditional_format('E2:E{}'.format(len(results_df) + 1),
                                               {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
             worksheet_past.conditional_format('E2:E{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
             worksheet_past.conditional_format('E2:E{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                              {'type': 'cell', 'criteria': '<', 'value': 0.96, 'format': format_red})
 
             worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
                                               {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
             worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
             worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                              {'type': 'cell', 'criteria': '<', 'value': 0.96, 'format': format_red})
 
         if not future_results_df.empty:
             future_results_df.to_excel(writer, sheet_name='Future Accuracy', index=False)
@@ -389,24 +386,23 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_future.set_column('E:E', None, format_percent)  # Percentages
             worksheet_future.set_column('I:I', None, format_percent)  # Percentages
 
-            # Apply conditional formatting to percentages
+            # Apply simplified conditional formatting to percentages in columns E and I
             worksheet_future.conditional_format('E2:E{}'.format(len(future_results_df) + 1),
                                                 {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
             worksheet_future.conditional_format('E2:E{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
             worksheet_future.conditional_format('E2:E{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                                {'type': 'cell', 'criteria': '<', 'value': 0.96, 'format': format_red})
 
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
                                                 {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                                {'type': 'cell', 'criteria': '<', 'value': 0.96, 'format': format_red})
 
     output.seek(0)
     return output, base_filename
-
 
 st.title('Accuracy Check Tool')
 
