@@ -302,15 +302,75 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
-# Function to create Excel file for download
-def create_excel_download(results_df, future_results_df, base_filename):
+# Function to create Excel file for download with color formatting and accuracy matrix
+def create_excel_download(results_df, future_results_df, base_filename, past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        workbook = writer.book
+        
+        # Write the Accuracy Matrix
+        accuracy_matrix = pd.DataFrame({
+            'Metric': ['RNs', 'Revenue'],
+            'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'],
+            'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%']
+        })
+        
+        accuracy_matrix.to_excel(writer, sheet_name='Accuracy Matrix', index=False, startrow=1)
+        worksheet = writer.sheets['Accuracy Matrix']
+
+        # Format for percentages
+        format_percent = workbook.add_format({'num_format': '0.00%'})
+        format_green = workbook.add_format({'bg_color': '#469798', 'font_color': '#FFFFFF'})
+        format_yellow = workbook.add_format({'bg_color': '#F2A541', 'font_color': '#FFFFFF'})
+        format_red = workbook.add_format({'bg_color': '#BF3100', 'font_color': '#FFFFFF'})
+
+        worksheet.conditional_format('B2:B3', {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+        worksheet.conditional_format('B2:B3', {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+        worksheet.conditional_format('B2:B3', {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+
+        worksheet.conditional_format('C2:C3', {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+        worksheet.conditional_format('C2:C3', {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+        worksheet.conditional_format('C2:C3', {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+
+        # Write past and future results to separate sheets
         if not results_df.empty:
-            results_df.to_excel(writer, index=False, sheet_name='Past Accuracy')
+            results_df.to_excel(writer, sheet_name='Past Accuracy', index=False)
+            worksheet_past = writer.sheets['Past Accuracy']
+            worksheet_past.set_column('F:G', None, format_percent)
+
+            worksheet_past.conditional_format('F2:F{}'.format(len(results_df) + 1),
+                                              {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+            worksheet_past.conditional_format('F2:F{}'.format(len(results_df) + 1),
+                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+            worksheet_past.conditional_format('F2:F{}'.format(len(results_df) + 1),
+                                              {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+
+            worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
+                                              {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+            worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
+                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+            worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
+                                              {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+
         if not future_results_df.empty:
-            future_results_df.to_excel(writer, index=False, sheet_name='Future Accuracy')
-    
+            future_results_df.to_excel(writer, sheet_name='Future Accuracy', index=False)
+            worksheet_future = writer.sheets['Future Accuracy']
+            worksheet_future.set_column('F:G', None, format_percent)
+
+            worksheet_future.conditional_format('F2:F{}'.format(len(future_results_df) + 1),
+                                                {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+            worksheet_future.conditional_format('F2:F{}'.format(len(future_results_df) + 1),
+                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+            worksheet_future.conditional_format('F2:F{}'.format(len(future_results_df) + 1),
+                                                {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+
+            worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
+                                                {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+            worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
+                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+            worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
+                                                {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+
     output.seek(0)
     return output, base_filename
 
@@ -349,7 +409,12 @@ if st.button("Process"):
             # Extract the base filename from the uploaded CSV file, before the first underscore
             base_filename = os.path.splitext(os.path.basename(csv_file.name))[0].split('_')[0]
 
-            excel_data, base_filename = create_excel_download(results_df, future_results_df, base_filename)
+            excel_data, base_filename = create_excel_download(
+                results_df, future_results_df, base_filename, 
+                past_accuracy_rn, past_accuracy_rev, 
+                future_accuracy_rn, future_accuracy_rev
+            )
+            
             st.download_button(
                 label="Download results as Excel",
                 data=excel_data,
