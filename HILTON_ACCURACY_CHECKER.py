@@ -38,37 +38,6 @@ def load_csv(file):
     delimiter = dialect.delimiter
     return pd.read_csv(file_obj, delimiter=delimiter)
 
-# Function to apply color scale for Excel output
-def apply_color_scale_to_excel(writer, df, sheet_name, color_scale_columns):
-    workbook = writer.book
-    worksheet = writer.sheets[sheet_name]
-
-    for column, column_letter in color_scale_columns.items():
-        max_row = len(df) + 1
-        worksheet.conditional_format(
-            f"{column_letter}2:{column_letter}{max_row}",
-            {
-                "type": "3_color_scale",
-                "min_color": "#BF3100",  # red
-                "mid_color": "#F2A541",  # yellow
-                "max_color": "#469798",  # green
-            },
-        )
-
-# Function to save styled DataFrame to Excel with color coding
-def save_styled_excel(df, sheet_name="Sheet1"):
-    buffer = BytesIO()
-    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-        # Apply color scale for specific columns
-        color_scale_columns = {
-            "RN Percentage": "E",
-            "Rev Percentage": "I",
-        }
-        apply_color_scale_to_excel(writer, df, sheet_name, color_scale_columns)
-    buffer.seek(0)
-    return buffer
-
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
     csv_data = load_csv(csv_file)
@@ -280,11 +249,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             if isinstance(val, str) and '%' in val:
                 val = float(val.strip('%'))
                 if val >= 98:
-                    return 'background-color: #469798'  # green
+                    return '#469798'  # green
                 elif 95 <= val < 98:
-                    return 'background-color: #F2A541'  # yellow
+                    return '#F2A541'  # yellow
                 else:
-                    return 'background-color: #BF3100'  # red
+                    return '#BF3100'  # red
             return ''
 
         accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
@@ -350,7 +319,14 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             mime='text/csv',
         )
 
-        excel_data = save_styled_excel(results_df)
+        excel_data = BytesIO()
+        with pd.ExcelWriter(excel_data, engine='openpyxl') as writer:
+            past_styled.to_excel(writer, sheet_name='Past Data', index=False)
+            workbook = writer.book
+            worksheet = writer.sheets['Past Data']
+            # Apply color formatting here if needed
+        excel_data.seek(0)
+
         st.download_button(
             label="Download Past Data as Excel",
             data=excel_data,
@@ -372,7 +348,14 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             mime='text/csv',
         )
 
-        excel_data_future = save_styled_excel(future_results_df)
+        excel_data_future = BytesIO()
+        with pd.ExcelWriter(excel_data_future, engine='openpyxl') as writer:
+            future_styled.to_excel(writer, sheet_name='Future Data', index=False)
+            workbook = writer.book
+            worksheet = writer.sheets['Future Data']
+            # Apply color formatting here if needed
+        excel_data_future.seek(0)
+
         st.download_button(
             label="Download Future Data as Excel",
             data=excel_data_future,
