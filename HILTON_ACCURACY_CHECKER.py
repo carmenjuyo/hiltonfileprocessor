@@ -281,13 +281,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         if not results_df.empty:
             # RN Discrepancy (Past)
-            fig.add_trace(go.Scatter(
+            fig.add_trace(go.Bar(
                 x=results_df['Business Date'],
                 y=results_df['RN Difference'],
-                mode='lines+markers',
                 name='RNs Discrepancy (Past)',
-                line=dict(color='cyan'),
-                marker=dict(color='cyan', size=8),
+                marker=dict(color='cyan'),
                 yaxis='y2'  # Secondary y-axis
             ))
 
@@ -303,13 +301,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         if not future_results_df.empty:
             # RN Discrepancy (Future)
-            fig.add_trace(go.Scatter(
+            fig.add_trace(go.Bar(
                 x=future_results_df['Business Date'],
                 y=future_results_df['RN Difference'],
-                mode='lines+markers',
                 name='RNs Discrepancy (Future)',
-                line=dict(color='cyan'),
-                marker=dict(color='cyan', size=8),
+                marker=dict(color='cyan'),
                 yaxis='y2'  # Secondary y-axis
             ))
 
