@@ -10,24 +10,6 @@ import zipfile
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
-# Inject custom CSS to change the icon colors
-st.markdown(
-    """
-    <style>
-    /* Make the cloud upload icons cyan */
-    .stFileUpload > label div[data-testid="fileUploadDropzone"] svg {
-        color: cyan !important;
-    }
-
-    /* Make the file icons green */
-    .stFileUploadDisplay > div:first-child > svg {
-        color: #469798 !important;
-    } 
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 # Repair function for corrupted Excel files using in-memory operations
 def repair_xlsx(file):
     repaired_file = BytesIO()
@@ -321,6 +303,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 yaxis='y2'  # Secondary y-axis for Revenue
             ))
 
+        # Ensure a common zero line across both y-axes
         fig.update_layout(
             template='plotly_dark',
             title='RNs and Revenue Discrepancy Over Time',
@@ -332,6 +315,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 zeroline=True,
                 zerolinecolor='white',
                 zerolinewidth=2,
+                rangemode='tozero',  # Ensures RN axis starts from zero if possible
             ),
             yaxis2=dict(
                 title='Revenue Discrepancy',
@@ -341,6 +325,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 zeroline=True,
                 zerolinecolor='white',
                 zerolinewidth=2,
+                rangemode='tozero',  # Ensures Revenue axis starts from zero if possible
             ),
             legend=dict(
                 x=0,
