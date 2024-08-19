@@ -303,9 +303,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
 # Function to create Excel file for download with color formatting and accuracy matrix
-from io import BytesIO
-import pandas as pd
-
 def create_excel_download(results_df, future_results_df, base_filename, past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -410,8 +407,6 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
     output.seek(0)
     return output, base_filename
 
-
-# Streamlit app layout
 st.title('Accuracy Check Tool')
 
 csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
