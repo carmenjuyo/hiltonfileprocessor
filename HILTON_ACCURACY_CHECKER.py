@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from io import BytesIO
 import zipfile
-import re
+import xlsxwriter
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
@@ -233,9 +233,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
-    # Extract the prefix from the CSV filename
-    csv_filename_prefix = re.split(r'[_]', csv_file.name)[0]
-
     # Display the Accuracy Matrix with color grading
     if not results_df.empty or not future_results_df.empty:
         accuracy_matrix = pd.DataFrame({
@@ -249,11 +246,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             if isinstance(val, str) and '%' in val:
                 val = float(val.strip('%'))
                 if val >= 98:
-                    return '#469798'  # green
+                    return 'background-color: #469798'  # green
                 elif 95 <= val < 98:
-                    return '#F2A541'  # yellow
+                    return 'background-color: #F2A541'  # yellow
                 else:
-                    return '#BF3100'  # red
+                    return 'background-color: #BF3100'  # red
             return ''
 
         accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
@@ -310,60 +307,25 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         past_styled = results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
         st.dataframe(past_styled, use_container_width=True)
 
-        # Add download buttons for CSV and Excel
-        csv_data = results_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Download Past Data as CSV",
-            data=csv_data,
-            file_name=f'{csv_filename_prefix}_past_accuracy.csv',
-            mime='text/csv',
-        )
-
-        excel_data = BytesIO()
-        with pd.ExcelWriter(excel_data, engine='openpyxl') as writer:
-            past_styled.to_excel(writer, sheet_name='Past Data', index=False)
-            workbook = writer.book
-            worksheet = writer.sheets['Past Data']
-            # Apply color formatting here if needed
-        excel_data.seek(0)
-
-        st.download_button(
-            label="Download Past Data as Excel",
-            data=excel_data,
-            file_name=f'{csv_filename_prefix}_past_accuracy.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        )
-
     if not future_results_df.empty:
         st.subheader('Detailed Accuracy Comparison (Future)')
         future_styled = future_results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
         st.dataframe(future_styled, use_container_width=True)
 
-        # Add download buttons for CSV and Excel
-        csv_data_future = future_results_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="Download Future Data as CSV",
-            data=csv_data_future,
-            file_name=f'{csv_filename_prefix}_future_accuracy.csv',
-            mime='text/csv',
-        )
-
-        excel_data_future = BytesIO()
-        with pd.ExcelWriter(excel_data_future, engine='openpyxl') as writer:
-            future_styled.to_excel(writer, sheet_name='Future Data', index=False)
-            workbook = writer.book
-            worksheet = writer.sheets['Future Data']
-            # Apply color formatting here if needed
-        excel_data_future.seek(0)
-
-        st.download_button(
-            label="Download Future Data as Excel",
-            data=excel_data_future,
-            file_name=f'{csv_filename_prefix}_future_accuracy.xlsx',
-            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        )
-
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+
+# Function to create Excel file for download
+def create_excel_download(results_df, future_results_df):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        if not results_df.empty:
+            results_df.to_excel(writer, index=False, sheet_name='Past Accuracy')
+        if not future_results_df.empty:
+            future_results_df.to_excel(writer, index=False, sheet_name='Future Accuracy')
+    
+    writer.save()
+    output.seek(0)
+    return output
 
 # Streamlit app layout
 st.title('Hilton Accuracy Check Tool')
@@ -400,3 +362,11 @@ if st.button("Process"):
         # Display results if they are not empty
         if results_df.empty and future_results_df.empty:
             st.warning("No data to display after processing. Please check the input files and parameters.")
+        else:
+            excel_data = create_excel_download(results_df, future_results_df)
+            st.download_button(
+                label="Download results as Excel",
+                data=excel_data,
+                file_name=f"Hilton_Accuracy_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
