@@ -303,9 +303,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
 # Function to create Excel file for download with color formatting and accuracy matrix
-from io import BytesIO
-import pandas as pd
-
 def create_excel_download(results_df, future_results_df, base_filename, past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
@@ -323,6 +320,8 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
 
         # Define formats
         format_percent = workbook.add_format({'num_format': '0.00%'})
+        format_whole = workbook.add_format({'num_format': '0'})  # Whole numbers
+        format_float = workbook.add_format({'num_format': '#,##0.00'})  # Floats
         format_green = workbook.add_format({'bg_color': '#469798', 'font_color': '#FFFFFF'})
         format_yellow = workbook.add_format({'bg_color': '#F2A541', 'font_color': '#FFFFFF'})
         format_red = workbook.add_format({'bg_color': '#BF3100', 'font_color': '#FFFFFF'})
@@ -342,12 +341,19 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_past = writer.sheets['Past Accuracy']
 
             # Define formats
-            format_number = workbook.add_format({'num_format': '#,##0.00'})
+            format_number = workbook.add_format({'num_format': '#,##0.00'})  # Floats
+            format_whole = workbook.add_format({'num_format': '0'})  # Whole numbers
             format_percent = workbook.add_format({'num_format': '0.00%'})
 
             # Format columns
-            worksheet_past.set_column('F:G', None, format_number)  # Revenue columns
-            worksheet_past.set_column('H:I', None, format_percent)  # Percentage columns
+            worksheet_past.set_column('A:A', None, format_whole)  # Whole numbers
+            worksheet_past.set_column('C:C', None, format_whole)  # Whole numbers
+            worksheet_past.set_column('D:D', None, format_whole)  # Whole numbers
+            worksheet_past.set_column('F:F', None, format_number)  # Floats
+            worksheet_past.set_column('G:G', None, format_number)  # Floats
+            worksheet_past.set_column('H:H', None, format_number)  # Floats
+            worksheet_past.set_column('E:E', None, format_percent)  # Percentages
+            worksheet_past.set_column('I:I', None, format_percent)  # Percentages
 
             # Apply conditional formatting to percentages
             worksheet_past.conditional_format('E2:E{}'.format(len(results_df) + 1),
@@ -369,12 +375,19 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_future = writer.sheets['Future Accuracy']
 
             # Define formats
-            format_number = workbook.add_format({'num_format': '#,##0.00'})
+            format_number = workbook.add_format({'num_format': '#,##0.00'})  # Floats
+            format_whole = workbook.add_format({'num_format': '0'})  # Whole numbers
             format_percent = workbook.add_format({'num_format': '0.00%'})
 
             # Format columns
-            worksheet_future.set_column('F:G', None, format_number)  # Revenue columns
-            worksheet_future.set_column('H:I', None, format_percent)  # Percentage columns
+            worksheet_future.set_column('A:A', None, format_whole)  # Whole numbers
+            worksheet_future.set_column('C:C', None, format_whole)  # Whole numbers
+            worksheet_future.set_column('D:D', None, format_whole)  # Whole numbers
+            worksheet_future.set_column('F:F', None, format_number)  # Floats
+            worksheet_future.set_column('G:G', None, format_number)  # Floats
+            worksheet_future.set_column('H:H', None, format_number)  # Floats
+            worksheet_future.set_column('E:E', None, format_percent)  # Percentages
+            worksheet_future.set_column('I:I', None, format_percent)  # Percentages
 
             # Apply conditional formatting to percentages
             worksheet_future.conditional_format('E2:E{}'.format(len(future_results_df) + 1),
@@ -393,8 +406,6 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
 
     output.seek(0)
     return output, base_filename
-
-
 
 # Streamlit app layout
 st.title('Accuracy Check Tool')
