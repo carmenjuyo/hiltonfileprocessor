@@ -321,48 +321,54 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 yaxis='y2'  # Secondary y-axis for Revenue
             ))
 
-        # Force a shared y-axis range
-        max_y = max(
-            max(results_df['RN Difference'].max(), future_results_df['RN Difference'].max(), 0),
-            max(results_df['Rev Difference'].max(), future_results_df['Rev Difference'].max(), 0)
-        )
-        min_y = min(
-            min(results_df['RN Difference'].min(), future_results_df['RN Difference'].min(), 0),
-            min(results_df['Rev Difference'].min(), future_results_df['Rev Difference'].min(), 0)
-        )
+        # Calculate min and max only if the columns exist
+        if 'RN Difference' in results_df.columns and 'Rev Difference' in results_df.columns:
+            max_y = max(
+                max(results_df['RN Difference'].max(), future_results_df['RN Difference'].max(), 0),
+                max(results_df['Rev Difference'].max(), future_results_df['Rev Difference'].max(), 0)
+            )
+            min_y = min(
+                min(results_df['RN Difference'].min(), future_results_df['RN Difference'].min(), 0),
+                min(results_df['Rev Difference'].min(), future_results_df['Rev Difference'].min(), 0)
+            )
 
-        fig.update_layout(
-            template='plotly_dark',
-            title='RNs and Revenue Discrepancy Over Time',
-            xaxis_title='Date',
-            yaxis=dict(
-                title='RNs Discrepancy',
-                side='left',
-                range=[min_y, max_y],  # Force the y-axis to share the same range
-                showgrid=False,
-                zeroline=True,
-                zerolinecolor='white',
-                zerolinewidth=2,
-            ),
-            yaxis2=dict(
-                title='Revenue Discrepancy',
-                side='right',
-                overlaying='y',
-                range=[min_y, max_y],  # Force the y-axis to share the same range
-                showgrid=False,
-                zeroline=True,
-                zerolinecolor='white',
-                zerolinewidth=2,
-            ),
-            legend=dict(
-                x=0,
-                y=1.1,
-                orientation='h'
-            ),
-            hovermode='x unified'
-        )
+            fig.update_layout(
+                template='plotly_dark',
+                title='RNs and Revenue Discrepancy Over Time',
+                xaxis_title='Date',
+                yaxis=dict(
+                    title='RNs Discrepancy',
+                    side='left',
+                    range=[min_y, max_y],  # Force the y-axis to share the same range
+                    showgrid=False,
+                    zeroline=True,
+                    zerolinecolor='white',
+                    zerolinewidth=2,
+                ),
+                yaxis2=dict(
+                    title='Revenue Discrepancy',
+                    side='right',
+                    overlaying='y',
+                    range=[min_y, max_y],  # Force the y-axis to share the same range
+                    showgrid=False,
+                    zeroline=True,
+                    zerolinecolor='white',
+                    zerolinewidth=2,
+                ),
+                legend=dict(
+                    x=0,
+                    y=1.1,
+                    orientation='h'
+                ),
+                hovermode='x unified'
+            )
+
+        else:
+            st.warning("One of the required columns ('RN Difference', 'Rev Difference') does not exist in the data.")
 
         st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No data available to plot the discrepancies.")
 
     # Display past and future results as tables after the graph
     if not results_df.empty:
