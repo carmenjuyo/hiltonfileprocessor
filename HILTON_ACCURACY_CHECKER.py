@@ -9,7 +9,7 @@ from io import BytesIO
 import zipfile
 import xlsxwriter
 
-# Set Streamlit page configuration to wide layout and dark theme
+# Set Streamlit page configuration to wide layout
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
 # Repair function for corrupted Excel files using in-memory operations
@@ -20,7 +20,6 @@ def repair_xlsx(file):
             for item in zip_ref.infolist():
                 data = zip_ref.read(item.filename)
                 repaired_zip.writestr(item, data)
-            # Check and add sharedStrings.xml if missing
             if 'xl/sharedStrings.xml' not in zip_ref.namelist():
                 shared_string_content = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
                 shared_string_content += '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="0" uniqueCount="0">\n'
@@ -51,7 +50,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
-    # Attempt to repair and read Excel files using in-memory operations
     repaired_excel_file = repair_xlsx(excel_file) if excel_file else None
     repaired_excel_file_2 = repair_xlsx(excel_file_2) if excel_file_2 else None
 
@@ -70,7 +68,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                     return (row, col)
         return None
 
-    # Process past data if the operational report is available
     if excel_data is not None:
         headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None, 'revenue': None}
         row_start = None
@@ -110,7 +107,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         common_dates = set(csv_data_past[arrival_date_col]).intersection(set(filtered_data['business date']))
 
-        # Adjust this line to handle either 'rev' or 'revenue'
         rev_col = 'rev' if 'rev' in filtered_data.columns else 'revenue'
         grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', rev_col: 'sum'}).reset_index()
 
@@ -137,14 +133,14 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
             results.append({
                 'Business Date': business_date,
-                'Juyo RN': int(rn),  # Convert RN to integer
-                'Hilton RN': int(sold_sum),  # Convert RN to integer
-                'RN Difference': int(rn_diff),  # Convert RN to integer
-                'RN Percentage': f"{rn_percentage:.2f}%",  # Format with 2 decimals and % sign
+                'Juyo RN': int(rn),
+                'Hilton RN': int(sold_sum),
+                'RN Difference': int(rn_diff),
+                'RN Percentage': f"{rn_percentage:.2f}%",
                 'Juyo Rev': revnet,
                 'Hilton Rev': rev_sum,
                 'Rev Difference': rev_diff,
-                'Rev Percentage': f"{rev_percentage:.2f}%"  # Format with 2 decimals and % sign
+                'Rev Percentage': f"{rev_percentage:.2f}%"
             })
 
         results_df = pd.DataFrame(results)
@@ -154,7 +150,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
-    # Process future data if the IDeaS report is available
     if excel_data_2 is not None:
         headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
         row_start_2 = None
@@ -216,14 +211,14 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
             future_results.append({
                 'Business Date': occupancy_date,
-                'Juyo RN': int(rn),  # Convert RN to integer
-                'IDeaS RN': int(occupancy_sum),  # Convert RN to integer
-                'RN Difference': int(rn_diff),  # Convert RN to integer
-                'RN Percentage': f"{rn_percentage:.2f}%",  # Format with 2 decimals and % sign
+                'Juyo RN': int(rn),
+                'IDeaS RN': int(occupancy_sum),
+                'RN Difference': int(rn_diff),
+                'RN Percentage': f"{rn_percentage:.2f}%",
                 'Juyo Rev': revnet,
                 'IDeaS Rev': booked_revenue_sum,
                 'Rev Difference': rev_diff,
-                'Rev Percentage': f"{rev_percentage:.2f}%"  # Format with 2 decimals and % sign
+                'Rev Percentage': f"{rev_percentage:.2f}%"
             })
 
         future_results_df = pd.DataFrame(future_results)
@@ -233,7 +228,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
-    # Display the Accuracy Matrix with color grading
     if not results_df.empty or not future_results_df.empty:
         accuracy_matrix = pd.DataFrame({
             'Metric': ['RNs', 'Revenue'],
@@ -242,28 +236,25 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         })
 
         def color_scale(val):
-            """Color scale for percentages."""
             if isinstance(val, str) and '%' in val:
                 val = float(val.strip('%'))
                 if val >= 98:
-                    return 'background-color: #469798'  # green
+                    return 'background-color: #469798'
                 elif 95 <= val < 98:
-                    return 'background-color: #F2A541'  # yellow
+                    return 'background-color: #F2A541'
                 else:
-                    return 'background-color: #BF3100'  # red
+                    return 'background-color: #BF3100'
             return ''
 
         accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
         st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
         st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
-    # Plotting the discrepancy over time using Plotly with bar and line chart
     if not results_df.empty or not future_results_df.empty:
         st.subheader('RNs and Revenue Discrepancy Over Time')
 
         fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-        # RN Discrepancies - Bar chart
         fig.add_trace(go.Bar(
             x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
             y=results_df['RN Difference'] if not results_df.empty else future_results_df['RN Difference'],
@@ -271,7 +262,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             marker_color='#469798'
         ), secondary_y=False)
 
-        # Revenue Discrepancies - Line chart
         fig.add_trace(go.Scatter(
             x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
             y=results_df['Rev Difference'] if not results_df.empty else future_results_df['Rev Difference'],
@@ -281,7 +271,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             marker=dict(size=8)
         ), secondary_y=True)
 
-        # Update plot layout for dynamic axis scaling and increased height
         max_room_discrepancy = results_df['RN Difference'].abs().max() if not results_df.empty else future_results_df['RN Difference'].abs().max()
         max_revenue_discrepancy = results_df['Rev Difference'].abs().max() if not results_df.empty else future_results_df['Rev Difference'].abs().max()
 
@@ -296,12 +285,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
         )
 
-        # Align grid lines
         fig.update_yaxes(matches=None, showgrid=True, gridwidth=1, gridcolor='grey')
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # Display past and future results as tables after the graph
     if not results_df.empty:
         st.subheader('Detailed Accuracy Comparison (Past)')
         past_styled = results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
@@ -323,7 +310,6 @@ def create_excel_download(results_df, future_results_df):
         if not future_results_df.empty:
             future_results_df.to_excel(writer, index=False, sheet_name='Future Accuracy')
     
-    writer.save()
     output.seek(0)
     return output
 
@@ -333,7 +319,6 @@ st.title('Hilton Accuracy Check Tool')
 csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
 excel_file = st.file_uploader("Upload Operational Report (.xlsx)", type="xlsx")
 
-# Display Inncode field only if Operational Report is uploaded
 if excel_file:
     inncode = st.text_input("Enter Inncode to process:", value="")
 else:
@@ -341,7 +326,6 @@ else:
 
 excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
 
-# Display VAT options only if IDeaS Report is uploaded
 if excel_file_2:
     apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
     if apply_vat:
@@ -350,7 +334,6 @@ else:
     apply_vat = False
     vat_rate = None
 
-# Display perspective date field always
 perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
 
 if st.button("Process"):
@@ -359,7 +342,6 @@ if st.button("Process"):
             csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
         )
         
-        # Display results if they are not empty
         if results_df.empty and future_results_df.empty:
             st.warning("No data to display after processing. Please check the input files and parameters.")
         else:
