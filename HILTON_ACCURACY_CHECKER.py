@@ -4,29 +4,12 @@ from datetime import datetime, timedelta
 import csv
 import io
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from io import BytesIO
 import zipfile
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
-
-# Inject custom CSS to change the icon colors
-st.markdown(
-    """
-    <style>
-    /* Make the cloud upload icons cyan */
-    .stFileUpload > label div[data-testid="fileUploadDropzone"] svg {
-        color: cyan !important;
-    }
-
-    /* Make the file icons green */
-    .stFileUploadDisplay > div:first-child > svg {
-        color: #469798 !important;
-    } 
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 # Repair function for corrupted Excel files using in-memory operations
 def repair_xlsx(file):
@@ -273,102 +256,49 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
         st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
-    # Plotting the discrepancy over time using Plotly with dual y-axes
+    # Plotting the discrepancy over time using Plotly with bar and line chart
     if not results_df.empty or not future_results_df.empty:
         st.subheader('RNs and Revenue Discrepancy Over Time')
 
-        fig = go.Figure()
+        fig = make_subplots(specs=[[{"secondary_y": True}]])
 
-        if not results_df.empty:
-            # RN Discrepancy (Past)
-            fig.add_trace(go.Scatter(
-                x=results_df['Business Date'],
-                y=results_df['RN Difference'],
-                mode='lines+markers',
-                name='RNs Discrepancy (Past)',
-                line=dict(color='cyan', width=2),
-                marker=dict(color='cyan', size=4),
-                yaxis='y'  # Primary y-axis for RNs
-            ))
+        # RN Discrepancies - Bar chart
+        fig.add_trace(go.Bar(
+            x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
+            y=results_df['RN Difference'] if not results_df.empty else future_results_df['RN Difference'],
+            name='RNs Discrepancy',
+            marker_color='#469798'
+        ), secondary_y=False)
 
-            # Revenue Discrepancy (Past)
-            fig.add_trace(go.Bar(
-                x=results_df['Business Date'],
-                y=results_df['Rev Difference'],
-                name='Revenue Discrepancy (Past)',
-                marker=dict(color='#BF3100'),
-                yaxis='y2'  # Secondary y-axis for Revenue
-            ))
+        # Revenue Discrepancies - Line chart
+        fig.add_trace(go.Scatter(
+            x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
+            y=results_df['Rev Difference'] if not results_df.empty else future_results_df['Rev Difference'],
+            name='Revenue Discrepancy',
+            mode='lines+markers',
+            line=dict(color='#BF3100', width=2),
+            marker=dict(size=8)
+        ), secondary_y=True)
 
-        if not future_results_df.empty:
-            # RN Discrepancy (Future)
-            fig.add_trace(go.Scatter(
-                x=future_results_df['Business Date'],
-                y=future_results_df['RN Difference'],
-                mode='lines+markers',
-                name='RNs Discrepancy (Future)',
-                line=dict(color='cyan', width=2),
-                marker=dict(color='cyan', size=4),
-                yaxis='y'  # Primary y-axis for RNs
-            ))
+        # Update plot layout for dynamic axis scaling and increased height
+        max_room_discrepancy = results_df['RN Difference'].abs().max() if not results_df.empty else future_results_df['RN Difference'].abs().max()
+        max_revenue_discrepancy = results_df['Rev Difference'].abs().max() if not results_df.empty else future_results_df['Rev Difference'].abs().max()
 
-            # Revenue Discrepancy (Future)
-            fig.add_trace(go.Bar(
-                x=future_results_df['Business Date'],
-                y=future_results_df['Rev Difference'],
-                name='Revenue Discrepancy (Future)',
-                marker=dict(color='#BF3100'),
-                yaxis='y2'  # Secondary y-axis for Revenue
-            ))
+        fig.update_layout(
+            height=600,
+            title='RNs and Revenue Discrepancy Over Time',
+            xaxis_title='Date',
+            yaxis_title='RNs Discrepancy',
+            yaxis2_title='Revenue Discrepancy',
+            yaxis=dict(range=[-max_room_discrepancy, max_room_discrepancy]),
+            yaxis2=dict(range=[-max_revenue_discrepancy, max_revenue_discrepancy]),
+            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
+        )
 
-        # Calculate min and max only if the columns exist
-        if 'RN Difference' in results_df.columns and 'Rev Difference' in results_df.columns:
-            max_y = max(
-                max(results_df['RN Difference'].max(), future_results_df['RN Difference'].max(), 0),
-                max(results_df['Rev Difference'].max(), future_results_df['Rev Difference'].max(), 0)
-            )
-            min_y = min(
-                min(results_df['RN Difference'].min(), future_results_df['RN Difference'].min(), 0),
-                min(results_df['Rev Difference'].min(), future_results_df['Rev Difference'].min(), 0)
-            )
-
-            fig.update_layout(
-                template='plotly_dark',
-                title='RNs and Revenue Discrepancy Over Time',
-                xaxis_title='Date',
-                yaxis=dict(
-                    title='RNs Discrepancy',
-                    side='left',
-                    range=[min_y, max_y],  # Force the y-axis to share the same range
-                    showgrid=False,
-                    zeroline=True,
-                    zerolinecolor='white',
-                    zerolinewidth=2,
-                ),
-                yaxis2=dict(
-                    title='Revenue Discrepancy',
-                    side='right',
-                    overlaying='y',
-                    range=[min_y, max_y],  # Force the y-axis to share the same range
-                    showgrid=False,
-                    zeroline=True,
-                    zerolinecolor='white',
-                    zerolinewidth=2,
-                ),
-                legend=dict(
-                    x=0,
-                    y=1.1,
-                    orientation='h'
-                ),
-                hovermode='x unified'
-            )
-
-        else:
-            st.warning("One of the required columns ('RN Difference', 'Rev Difference') does not exist in the data.")
+        # Align grid lines
+        fig.update_yaxes(matches=None, showgrid=True, gridwidth=1, gridcolor='grey')
 
         st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.warning("No data available to plot the discrepancies.")
 
     # Display past and future results as tables after the graph
     if not results_df.empty:
