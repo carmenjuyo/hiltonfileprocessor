@@ -78,6 +78,7 @@ def save_styled_excel(df, sheet_name="Sheet1"):
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False)
+        writer.save()  # Ensure that the writer saves the content before formatting
         # Apply color scale for specific columns
         color_scale_columns = {
             "RN Percentage": "E",
