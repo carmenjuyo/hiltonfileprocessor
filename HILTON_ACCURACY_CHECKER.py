@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from io import BytesIO
 import zipfile
+import re
 
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
@@ -281,6 +282,9 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
+    # Extract the prefix from the CSV filename
+    csv_filename_prefix = re.split(r'[_]', csv_file.name)[0]
+
     # Display the Accuracy Matrix with color grading
     if not results_df.empty or not future_results_df.empty:
         accuracy_matrix = pd.DataFrame({
@@ -360,7 +364,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.download_button(
             label="Download Past Data as CSV",
             data=csv_data,
-            file_name='past_accuracy.csv',
+            file_name=f'{csv_filename_prefix}_past_accuracy.csv',
             mime='text/csv',
         )
 
@@ -368,7 +372,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.download_button(
             label="Download Past Data as Excel",
             data=excel_data,
-            file_name='past_accuracy.xlsx',
+            file_name=f'{csv_filename_prefix}_past_accuracy.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
 
@@ -382,7 +386,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.download_button(
             label="Download Future Data as CSV",
             data=csv_data_future,
-            file_name='future_accuracy.csv',
+            file_name=f'{csv_filename_prefix}_future_accuracy.csv',
             mime='text/csv',
         )
 
@@ -390,7 +394,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.download_button(
             label="Download Future Data as Excel",
             data=excel_data_future,
-            file_name='future_accuracy.xlsx',
+            file_name=f'{csv_filename_prefix}_future_accuracy.xlsx',
             mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
 
