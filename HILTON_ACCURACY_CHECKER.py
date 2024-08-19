@@ -8,9 +8,10 @@ from plotly.subplots import make_subplots
 from io import BytesIO
 import zipfile
 import xlsxwriter
+import os
 
 # Set Streamlit page configuration to wide layout
-st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
+st.set_page_config(layout="wide", page_title="Accuracy Check Tool")
 
 # Repair function for corrupted Excel files using in-memory operations
 def repair_xlsx(file):
@@ -302,7 +303,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
 # Function to create Excel file for download
-def create_excel_download(results_df, future_results_df):
+def create_excel_download(results_df, future_results_df, base_filename):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         if not results_df.empty:
@@ -311,10 +312,10 @@ def create_excel_download(results_df, future_results_df):
             future_results_df.to_excel(writer, index=False, sheet_name='Future Accuracy')
     
     output.seek(0)
-    return output
+    return output, base_filename
 
 # Streamlit app layout
-st.title('Hilton Accuracy Check Tool')
+st.title('Accuracy Check Tool')
 
 csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
 excel_file = st.file_uploader("Upload Operational Report (.xlsx)", type="xlsx")
@@ -345,10 +346,13 @@ if st.button("Process"):
         if results_df.empty and future_results_df.empty:
             st.warning("No data to display after processing. Please check the input files and parameters.")
         else:
-            excel_data = create_excel_download(results_df, future_results_df)
+            # Extract the base filename from the uploaded CSV file, before the first underscore
+            base_filename = os.path.splitext(os.path.basename(csv_file.name))[0].split('_')[0]
+
+            excel_data, base_filename = create_excel_download(results_df, future_results_df, base_filename)
             st.download_button(
                 label="Download results as Excel",
                 data=excel_data,
-                file_name=f"Hilton_Accuracy_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                file_name=f"{base_filename}_Accuracy_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
