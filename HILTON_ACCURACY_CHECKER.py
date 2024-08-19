@@ -11,6 +11,24 @@ import zipfile
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
+# Inject custom CSS to change the icon colors
+st.markdown(
+    """
+    <style>
+    /* Make the cloud upload icons cyan */
+    .stFileUpload > label div[data-testid="fileUploadDropzone"] svg {
+        color: cyan !important;
+    }
+
+    /* Make the file icons green */
+    .stFileUploadDisplay > div:first-child > svg {
+        color: #469798 !important;
+    } 
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Repair function for corrupted Excel files using in-memory operations
 def repair_xlsx(file):
     repaired_file = BytesIO()
@@ -36,6 +54,37 @@ def load_csv(file):
     dialect = csv.Sniffer().sniff(sample)
     delimiter = dialect.delimiter
     return pd.read_csv(file_obj, delimiter=delimiter)
+
+# Function to apply color scale for Excel output
+def apply_color_scale_to_excel(writer, df, sheet_name, color_scale_columns):
+    workbook = writer.book
+    worksheet = writer.sheets[sheet_name]
+
+    for column, column_letter in color_scale_columns.items():
+        max_row = len(df) + 1
+        worksheet.conditional_format(
+            f"{column_letter}2:{column_letter}{max_row}",
+            {
+                "type": "3_color_scale",
+                "min_color": "#BF3100",  # red
+                "mid_color": "#F2A541",  # yellow
+                "max_color": "#469798",  # green
+            },
+        )
+
+# Function to save styled DataFrame to Excel with color coding
+def save_styled_excel(df, sheet_name="Sheet1"):
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+        # Apply color scale for specific columns
+        color_scale_columns = {
+            "RN Percentage": "E",
+            "Rev Percentage": "I",
+        }
+        apply_color_scale_to_excel(writer, df, sheet_name, color_scale_columns)
+    buffer.seek(0)
+    return buffer
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
@@ -306,10 +355,44 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         past_styled = results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
         st.dataframe(past_styled, use_container_width=True)
 
+        # Add download buttons for CSV and Excel
+        csv_data = results_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download Past Data as CSV",
+            data=csv_data,
+            file_name='past_accuracy.csv',
+            mime='text/csv',
+        )
+
+        excel_data = save_styled_excel(results_df)
+        st.download_button(
+            label="Download Past Data as Excel",
+            data=excel_data,
+            file_name='past_accuracy.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+
     if not future_results_df.empty:
         st.subheader('Detailed Accuracy Comparison (Future)')
         future_styled = future_results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
         st.dataframe(future_styled, use_container_width=True)
+
+        # Add download buttons for CSV and Excel
+        csv_data_future = future_results_df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download Future Data as CSV",
+            data=csv_data_future,
+            file_name='future_accuracy.csv',
+            mime='text/csv',
+        )
+
+        excel_data_future = save_styled_excel(future_results_df)
+        st.download_button(
+            label="Download Future Data as Excel",
+            data=excel_data_future,
+            file_name='future_accuracy.xlsx',
+            mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
