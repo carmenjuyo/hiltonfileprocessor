@@ -293,10 +293,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             fig.add_trace(go.Scatter(
                 x=results_df['Business Date'],
                 y=results_df['Rev Difference'],
-                mode='lines+markers',
+                mode='markers+lines',
                 name='Revenue Discrepancy (Past)',
-                line=dict(color='#BF3100'),  # red
-                marker=dict(color='#BF3100', size=8)  # red
+                line=dict(color='#BF3100', width=2),  # red
+                marker=dict(color='#BF3100', size=4)  # red
             ))
 
         if not future_results_df.empty:
@@ -313,10 +313,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             fig.add_trace(go.Scatter(
                 x=future_results_df['Business Date'],
                 y=future_results_df['Rev Difference'],
-                mode='lines+markers',
+                mode='markers+lines',
                 name='Revenue Discrepancy (Future)',
-                line=dict(color='#BF3100'),  # red
-                marker=dict(color='#BF3100', size=8)  # red
+                line=dict(color='#BF3100', width=2),  # red
+                marker=dict(color='#BF3100', size=4)  # red
             ))
 
         fig.update_layout(
