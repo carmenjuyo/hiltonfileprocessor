@@ -51,6 +51,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
 
+    # Attempt to repair and read Excel files using in-memory operations
     repaired_excel_file = repair_xlsx(excel_file) if excel_file else None
     repaired_excel_file_2 = repair_xlsx(excel_file_2) if excel_file_2 else None
 
@@ -152,20 +153,19 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
     if excel_data_2 is not None:
-        headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
-        row_start_2 = None
+        headers_2 = ['Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year']
+        op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl')
 
-        for label in headers_2.keys():
-            headers_2[label] = find_header(label, excel_data_2)
-            if headers_2[label]:
-                if row_start_2 is None or headers_2[label][0] > row_start_2:
-                    row_start_2 = headers_2[label][0]
-
-        if not all(headers_2.values()):
+        # Try to find the row where the headers are located
+        for i, row in op_data_2.iterrows():
+            if set(headers_2).issubset(row.values):
+                op_data_2.columns = op_data_2.iloc[i]
+                op_data_2 = op_data_2.drop(index=i).reset_index(drop=True)
+                break
+        else:
             st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-        op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
         op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
 
         if 'occupancy date' not in op_data_2.columns or 'occupancy on books this year' not in op_data_2.columns or 'booked room revenue this year' not in op_data_2.columns:
@@ -338,38 +338,40 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_past = writer.sheets['Past Accuracy']
             worksheet_past.set_column('F:G', None, format_percent)
 
+            # Apply conditional formatting for RN Percentage and Rev Percentage columns in Past Accuracy
             worksheet_past.conditional_format('F2:F{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+                                              {'type': 'cell', 'criteria': '>=', 'value': 98, 'format': format_green})
             worksheet_past.conditional_format('F2:F{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                              {'type': 'cell', 'criteria': 'between', 'minimum': 95, 'maximum': 97.99, 'format': format_yellow})
             worksheet_past.conditional_format('F2:F{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                              {'type': 'cell', 'criteria': '<', 'value': 95, 'format': format_red})
 
             worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+                                              {'type': 'cell', 'criteria': '>=', 'value': 98, 'format': format_green})
             worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                              {'type': 'cell', 'criteria': 'between', 'minimum': 95, 'maximum': 97.99, 'format': format_yellow})
             worksheet_past.conditional_format('I2:I{}'.format(len(results_df) + 1),
-                                              {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                              {'type': 'cell', 'criteria': '<', 'value': 95, 'format': format_red})
 
         if not future_results_df.empty:
             future_results_df.to_excel(writer, sheet_name='Future Accuracy', index=False)
             worksheet_future = writer.sheets['Future Accuracy']
             worksheet_future.set_column('F:G', None, format_percent)
 
+            # Apply conditional formatting for RN Percentage and Rev Percentage columns in Future Accuracy
             worksheet_future.conditional_format('F2:F{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+                                                {'type': 'cell', 'criteria': '>=', 'value': 98, 'format': format_green})
             worksheet_future.conditional_format('F2:F{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                                {'type': 'cell', 'criteria': 'between', 'minimum': 95, 'maximum': 97.99, 'format': format_yellow})
             worksheet_future.conditional_format('F2:F{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                                {'type': 'cell', 'criteria': '<', 'value': 95, 'format': format_red})
 
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
+                                                {'type': 'cell', 'criteria': '>=', 'value': 98, 'format': format_green})
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': 'between', 'minimum': 0.95, 'maximum': 0.9799, 'format': format_yellow})
+                                                {'type': 'cell', 'criteria': 'between', 'minimum': 95, 'maximum': 97.99, 'format': format_yellow})
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
-                                                {'type': 'cell', 'criteria': '<', 'value': 0.95, 'format': format_red})
+                                                {'type': 'cell', 'criteria': '<', 'value': 95, 'format': format_red})
 
     output.seek(0)
     return output, base_filename
@@ -421,3 +423,4 @@ if st.button("Process"):
                 file_name=f"{base_filename}_Accuracy_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+
