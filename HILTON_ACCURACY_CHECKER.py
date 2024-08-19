@@ -281,53 +281,66 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         if not results_df.empty:
             # RN Discrepancy (Past)
-            fig.add_trace(go.Bar(
+            fig.add_trace(go.Scatter(
                 x=results_df['Business Date'],
                 y=results_df['RN Difference'],
+                mode='lines+markers',
                 name='RNs Discrepancy (Past)',
-                marker=dict(color='cyan'),
-                yaxis='y2'  # Secondary y-axis
+                line=dict(color='cyan', width=2),
+                marker=dict(color='cyan', size=4),
+                yaxis='y'  # Primary y-axis for RNs
             ))
 
             # Revenue Discrepancy (Past)
-            fig.add_trace(go.Scatter(
+            fig.add_trace(go.Bar(
                 x=results_df['Business Date'],
                 y=results_df['Rev Difference'],
-                mode='markers+lines',
                 name='Revenue Discrepancy (Past)',
-                line=dict(color='#BF3100', width=2),  # red
-                marker=dict(color='#BF3100', size=4)  # red
+                marker=dict(color='#BF3100'),
+                yaxis='y2'  # Secondary y-axis for Revenue
             ))
 
         if not future_results_df.empty:
             # RN Discrepancy (Future)
-            fig.add_trace(go.Bar(
+            fig.add_trace(go.Scatter(
                 x=future_results_df['Business Date'],
                 y=future_results_df['RN Difference'],
+                mode='lines+markers',
                 name='RNs Discrepancy (Future)',
-                marker=dict(color='cyan'),
-                yaxis='y2'  # Secondary y-axis
+                line=dict(color='cyan', width=2),
+                marker=dict(color='cyan', size=4),
+                yaxis='y'  # Primary y-axis for RNs
             ))
 
             # Revenue Discrepancy (Future)
-            fig.add_trace(go.Scatter(
+            fig.add_trace(go.Bar(
                 x=future_results_df['Business Date'],
                 y=future_results_df['Rev Difference'],
-                mode='markers+lines',
                 name='Revenue Discrepancy (Future)',
-                line=dict(color='#BF3100', width=2),  # red
-                marker=dict(color='#BF3100', size=4)  # red
+                marker=dict(color='#BF3100'),
+                yaxis='y2'  # Secondary y-axis for Revenue
             ))
 
         fig.update_layout(
             template='plotly_dark',
             title='RNs and Revenue Discrepancy Over Time',
             xaxis_title='Date',
-            yaxis_title='Revenue Discrepancy',
-            yaxis2=dict(
+            yaxis=dict(
                 title='RNs Discrepancy',
+                side='left',
+                showgrid=False,
+                zeroline=True,
+                zerolinecolor='white',
+                zerolinewidth=2,
+            ),
+            yaxis2=dict(
+                title='Revenue Discrepancy',
+                side='right',
                 overlaying='y',
-                side='right'
+                showgrid=False,
+                zeroline=True,
+                zerolinecolor='white',
+                zerolinewidth=2,
             ),
             legend=dict(
                 x=0,
