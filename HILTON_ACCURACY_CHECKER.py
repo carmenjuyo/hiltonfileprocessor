@@ -12,24 +12,6 @@ import re
 # Set Streamlit page configuration to wide layout and dark theme
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
-# Inject custom CSS to change the icon colors
-st.markdown(
-    """
-    <style>
-    /* Make the cloud upload icons cyan */
-    .stFileUpload > label div[data-testid="fileUploadDropzone"] svg {
-        color: cyan !important;
-    }
-
-    /* Make the file icons green */
-    .stFileUploadDisplay > div:first-child > svg {
-        color: #469798 !important;
-    } 
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 # Repair function for corrupted Excel files using in-memory operations
 def repair_xlsx(file):
     repaired_file = BytesIO()
@@ -78,7 +60,6 @@ def save_styled_excel(df, sheet_name="Sheet1"):
     buffer = BytesIO()
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False)
-        writer.save()  # Ensure that the writer saves the content before formatting
         # Apply color scale for specific columns
         color_scale_columns = {
             "RN Percentage": "E",
