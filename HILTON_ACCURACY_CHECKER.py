@@ -88,7 +88,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     # Process past data if the operational report is available
     if excel_data is not None:
-        headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None}
+        headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None, 'revenue': None}
         row_start = None
 
         for label in headers.keys():
@@ -97,8 +97,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 if row_start is None or headers[label][0] > row_start:
                     row_start = headers[label][0]
 
-        if not all(headers.values()):
-            st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev') in the first Excel file.")
+        if not (headers['business date'] and headers['inncode'] and headers['sold'] and (headers['rev'] or headers['revenue'])):
+            st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev' or 'Revenue') in the first Excel file.")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
         op_data = pd.read_excel(repaired_excel_file, sheet_name=0, engine='openpyxl', header=row_start)
@@ -126,7 +126,9 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         common_dates = set(csv_data_past[arrival_date_col]).intersection(set(filtered_data['business date']))
 
-        grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', 'rev': 'sum'}).reset_index()
+        # Adjust this line to handle either 'rev' or 'revenue'
+        rev_col = 'rev' if 'rev' in filtered_data.columns else 'revenue'
+        grouped_data = filtered_data.groupby('business date').agg({'sold': 'sum', rev_col: 'sum'}).reset_index()
 
         results = []
         for _, row in csv_data_past.iterrows():
@@ -141,7 +143,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 continue
 
             sold_sum = excel_row['sold'].values[0]
-            rev_sum = excel_row['rev'].values[0]
+            rev_sum = excel_row[rev_col].values[0]
 
             rn_diff = rn - sold_sum
             rev_diff = revnet - rev_sum
