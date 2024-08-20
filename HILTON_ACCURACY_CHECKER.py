@@ -311,8 +311,8 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
         # Write the Accuracy Matrix
         accuracy_matrix = pd.DataFrame({
             'Metric': ['RNs', 'Revenue'],
-            'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'],
-            'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%']
+            'Past': [past_accuracy_rn / 100, past_accuracy_rev / 100],  # Store as decimal
+            'Future': [future_accuracy_rn / 100, future_accuracy_rev / 100]  # Store as decimal
         })
         
         accuracy_matrix.to_excel(writer, sheet_name='Accuracy Matrix', index=False, startrow=1)
@@ -322,9 +322,12 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
         format_green = workbook.add_format({'bg_color': '#469798', 'font_color': '#FFFFFF'})
         format_yellow = workbook.add_format({'bg_color': '#F2A541', 'font_color': '#FFFFFF'})
         format_red = workbook.add_format({'bg_color': '#BF3100', 'font_color': '#FFFFFF'})
+        format_percent = workbook.add_format({'num_format': '0.00%'})  # Percentage format
+
+        # Apply percentage format to the relevant cells
+        worksheet.set_column('B:C', None, format_percent)  # Set percentage format
 
         # Apply simplified conditional formatting for Accuracy Matrix
-        # Start with the least restrictive condition to ensure that more specific ones override
         worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': '<', 'value': 0.96, 'format': format_red})
         worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
         worksheet.conditional_format('B3:B4', {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
@@ -335,13 +338,16 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
 
         # Write past and future results to separate sheets
         if not results_df.empty:
+            # Convert percentages to decimals
+            results_df['Percentage Column'] = results_df['Percentage Column'] / 100  # Replace with actual column names
+
             results_df.to_excel(writer, sheet_name='Past Accuracy', index=False)
             worksheet_past = writer.sheets['Past Accuracy']
 
             # Define formats
             format_number = workbook.add_format({'num_format': '#,##0.00'})  # Floats
             format_whole = workbook.add_format({'num_format': '0'})  # Whole numbers
-            format_percent = workbook.add_format({'num_format': '0.00%'})
+            format_percent = workbook.add_format({'num_format': '0.00%'})  # Percentage format
 
             # Format columns
             worksheet_past.set_column('A:A', None, format_whole)  # Whole numbers
@@ -350,8 +356,8 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_past.set_column('F:F', None, format_number)  # Floats
             worksheet_past.set_column('G:G', None, format_number)  # Floats
             worksheet_past.set_column('H:H', None, format_number)  # Floats
-            worksheet_past.set_column('E:E', None, format_number)  # Floats
-            worksheet_past.set_column('I:I', None, format_number)  # Floats
+            worksheet_past.set_column('E:E', None, format_percent)  # Percentage
+            worksheet_past.set_column('I:I', None, format_percent)  # Percentage
 
             # Apply simplified conditional formatting to percentages in columns E and I
             worksheet_past.conditional_format('E2:E{}'.format(len(results_df) + 1),
@@ -369,13 +375,11 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
                                               {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
 
         if not future_results_df.empty:
+            # Convert percentages to decimals
+            future_results_df['Percentage Column'] = future_results_df['Percentage Column'] / 100  # Replace with actual column names
+
             future_results_df.to_excel(writer, sheet_name='Future Accuracy', index=False)
             worksheet_future = writer.sheets['Future Accuracy']
-
-            # Define formats
-            format_number = workbook.add_format({'num_format': '#,##0.00'})  # Floats
-            format_whole = workbook.add_format({'num_format': '0'})  # Whole numbers
-            format_percent = workbook.add_format({'num_format': '0.00%'})
 
             # Format columns
             worksheet_future.set_column('A:A', None, format_whole)  # Whole numbers
@@ -384,8 +388,8 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_future.set_column('F:F', None, format_number)  # Floats
             worksheet_future.set_column('G:G', None, format_number)  # Floats
             worksheet_future.set_column('H:H', None, format_number)  # Floats
-            worksheet_future.set_column('E:E', None, format_number)  # Floats
-            worksheet_future.set_column('I:I', None, format_number)  # Floats
+            worksheet_future.set_column('E:E', None, format_percent)  # Percentage
+            worksheet_future.set_column('I:I', None, format_percent)  # Percentage
 
             # Apply simplified conditional formatting to percentages in columns E and I
             worksheet_future.conditional_format('E2:E{}'.format(len(future_results_df) + 1),
@@ -401,12 +405,6 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
                                                 {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
                                                 {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
-            # Format columns
-            worksheet_past.set_column('E:E', None, format_percent)  # Percentage
-            worksheet_past.set_column('I:I', None, format_percent)  # Percentage
-            worksheet_future.set_column('E:E', None, format_percent)  # Percentage
-            worksheet_future.set_column('I:I', None, format_percent)  # Percentage
-    
     output.seek(0)
     return output, base_filename
 
