@@ -437,15 +437,7 @@ if st.button("Process"):
         results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
             csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
         )
-
-        # Store the processed data in session state
-        st.session_state['results_df'] = results_df
-        st.session_state['future_results_df'] = future_results_df
-        st.session_state['past_accuracy_rn'] = past_accuracy_rn
-        st.session_state['past_accuracy_rev'] = past_accuracy_rev
-        st.session_state['future_accuracy_rn'] = future_accuracy_rn
-        st.session_state['future_accuracy_rev'] = future_accuracy_rev
-
+        
         if results_df.empty and future_results_df.empty:
             st.warning("No data to display after processing. Please check the input files and parameters.")
         else:
@@ -464,22 +456,3 @@ if st.button("Process"):
                 file_name=f"{base_filename}_Accuracy_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-
-# Check if the processed data exists in session state and display it
-if 'results_df' in st.session_state or 'future_results_df' in st.session_state:
-    results_df = st.session_state['results_df']
-    future_results_df = st.session_state['future_results_df']
-    past_accuracy_rn = st.session_state['past_accuracy_rn']
-    past_accuracy_rev = st.session_state['past_accuracy_rev']
-    future_accuracy_rn = st.session_state['future_accuracy_rn']
-    future_accuracy_rev = st.session_state['future_accuracy_rev']
-
-    if not results_df.empty:
-        st.subheader('Detailed Accuracy Comparison (Past)')
-        past_styled = results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
-        st.dataframe(past_styled, use_container_width=True)
-
-    if not future_results_df.empty:
-        st.subheader('Detailed Accuracy Comparison (Future)')
-        future_styled = future_results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
-        st.dataframe(future_styled, use_container_width=True)
