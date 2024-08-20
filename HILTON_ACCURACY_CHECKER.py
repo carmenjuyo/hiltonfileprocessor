@@ -137,17 +137,17 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 'Juyo RN': int(rn),
                 'Hilton RN': int(sold_sum),
                 'RN Difference': int(rn_diff),
-                'RN Percentage': f"{rn_percentage:.2f}%",
+                'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
                 'Juyo Rev': revnet,
                 'Hilton Rev': rev_sum,
                 'Rev Difference': rev_diff,
-                'Rev Percentage': f"{rev_percentage:.2f}%"
+                'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
             })
 
         results_df = pd.DataFrame(results)
 
-        past_accuracy_rn = results_df['RN Percentage'].str.rstrip('%').astype(float).mean()
-        past_accuracy_rev = results_df['Rev Percentage'].str.rstrip('%').astype(float).mean()
+        past_accuracy_rn = results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
+        past_accuracy_rev = results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
@@ -215,17 +215,17 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 'Juyo RN': int(rn),
                 'IDeaS RN': int(occupancy_sum),
                 'RN Difference': int(rn_diff),
-                'RN Percentage': f"{rn_percentage:.2f}%",
+                'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
                 'Juyo Rev': revnet,
                 'IDeaS Rev': booked_revenue_sum,
                 'Rev Difference': rev_diff,
-                'Rev Percentage': f"{rev_percentage:.2f}%"
+                'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
             })
 
         future_results_df = pd.DataFrame(future_results)
 
-        future_accuracy_rn = future_results_df['RN Percentage'].str.rstrip('%').astype(float).mean()
-        future_accuracy_rev = future_results_df['Rev Percentage'].str.rstrip('%').astype(float).mean()
+        future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
+        future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
@@ -338,8 +338,9 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
 
         # Write past and future results to separate sheets
         if not results_df.empty:
-            # Convert percentages to decimals
-            results_df['Percentage Column'] = results_df['Percentage Column'] / 100  # Replace with actual column names
+            # Ensure percentage columns are properly formatted as decimals
+            results_df['RN Percentage'] = results_df['RN Percentage'].astype(float)
+            results_df['Rev Percentage'] = results_df['Rev Percentage'].astype(float)
 
             results_df.to_excel(writer, sheet_name='Past Accuracy', index=False)
             worksheet_past = writer.sheets['Past Accuracy']
@@ -375,8 +376,9 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
                                               {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
 
         if not future_results_df.empty:
-            # Convert percentages to decimals
-            future_results_df['Percentage Column'] = future_results_df['Percentage Column'] / 100  # Replace with actual column names
+            # Ensure percentage columns are properly formatted as decimals
+            future_results_df['RN Percentage'] = future_results_df['RN Percentage'].astype(float)
+            future_results_df['Rev Percentage'] = future_results_df['Rev Percentage'].astype(float)
 
             future_results_df.to_excel(writer, sheet_name='Future Accuracy', index=False)
             worksheet_future = writer.sheets['Future Accuracy']
