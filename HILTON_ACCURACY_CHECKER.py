@@ -350,8 +350,8 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_past.set_column('F:F', None, format_number)  # Floats
             worksheet_past.set_column('G:G', None, format_number)  # Floats
             worksheet_past.set_column('H:H', None, format_number)  # Floats
-            worksheet_past.set_column('E:E', None, format_percent)  # Percentages
-            worksheet_past.set_column('I:I', None, format_percent)  # Percentages
+            worksheet_past.set_column('E:E', None, format_number)  # Floats
+            worksheet_past.set_column('I:I', None, format_number)  # Floats
 
             # Apply simplified conditional formatting to percentages in columns E and I
             worksheet_past.conditional_format('E2:E{}'.format(len(results_df) + 1),
@@ -384,8 +384,8 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
             worksheet_future.set_column('F:F', None, format_number)  # Floats
             worksheet_future.set_column('G:G', None, format_number)  # Floats
             worksheet_future.set_column('H:H', None, format_number)  # Floats
-            worksheet_future.set_column('E:E', None, format_percent)  # Percentages
-            worksheet_future.set_column('I:I', None, format_percent)  # Percentages
+            worksheet_future.set_column('E:E', None, format_number)  # Floats
+            worksheet_future.set_column('I:I', None, format_number)  # Floats
 
             # Apply simplified conditional formatting to percentages in columns E and I
             worksheet_future.conditional_format('E2:E{}'.format(len(future_results_df) + 1),
@@ -401,7 +401,12 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
                                                 {'type': 'cell', 'criteria': 'between', 'minimum': 0.96, 'maximum': 0.9799, 'format': format_yellow})
             worksheet_future.conditional_format('I2:I{}'.format(len(future_results_df) + 1),
                                                 {'type': 'cell', 'criteria': '>=', 'value': 0.98, 'format': format_green})
-
+            # Format columns
+            worksheet_past.set_column('E:E', None, format_percent)  # Percentage
+            worksheet_past.set_column('I:I', None, format_percent)  # Percentage
+            worksheet_future.set_column('E:E', None, format_percent)  # Percentage
+            worksheet_future.set_column('I:I', None, format_percent)  # Percentage
+    
     output.seek(0)
     return output, base_filename
 
