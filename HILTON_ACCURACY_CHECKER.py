@@ -79,18 +79,21 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 if row_start is None or headers[label][0] > row_start:
                     row_start = headers[label][0]
 
-        if not (headers['business date'] and headers['inncode'] and headers['sold'] and (headers['rev'] or headers['revenue'])):
+        if not (headers['business date'] and (not inncode or headers['inncode']) and headers['sold'] and (headers['rev'] or headers['revenue'])):
             st.error("Could not find all required headers ('Business Date', 'Inncode', 'SOLD', 'Rev' or 'Revenue') in the first Excel file.")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
         op_data = pd.read_excel(repaired_excel_file, sheet_name=0, engine='openpyxl', header=row_start)
         op_data.columns = [col.lower().strip() for col in op_data.columns]
 
-        if 'inncode' not in op_data.columns or 'business date' not in op_data.columns:
-            st.error("Expected columns 'Inncode' or 'Business Date' not found in the first Excel file.")
+        if 'business date' not in op_data.columns or (inncode and 'inncode' not in op_data.columns):
+            st.error("Expected columns 'Business Date' or 'Inncode' not found in the first Excel file.")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-        filtered_data = op_data[op_data['inncode'] == inncode]
+        if inncode:
+            filtered_data = op_data[op_data['inncode'] == inncode]
+        else:
+            filtered_data = op_data
 
         if filtered_data.empty:
             st.warning("No data found for the given Inncode in the first Excel file.")
