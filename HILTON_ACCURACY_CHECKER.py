@@ -49,7 +49,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error(f"Expected column '{arrival_date_col}' not found in CSV file.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col])
+    csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col], errors='coerce')
+    csv_data = csv_data.dropna(subset=[arrival_date_col])
 
     repaired_excel_file = repair_xlsx(excel_file) if excel_file else None
     repaired_excel_file_2 = repair_xlsx(excel_file_2) if excel_file_2 else None
@@ -99,7 +100,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             st.warning("No data found for the given Inncode in the first Excel file.")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-        filtered_data['business date'] = pd.to_datetime(filtered_data['business date'])
+        filtered_data['business date'] = pd.to_datetime(filtered_data['business date'], errors='coerce')
+        filtered_data = filtered_data.dropna(subset=['business date'])
 
         if perspective_date:
             end_date = pd.to_datetime(perspective_date)
@@ -175,7 +177,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             st.error("Expected columns 'Occupancy Date', 'Occupancy On Books This Year', or 'Booked Room Revenue This Year' not found in the second Excel file.")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-        op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'])
+        op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
+        op_data_2 = op_data_2.dropna(subset=['occupancy date'])
 
         if perspective_date:
             end_date = pd.to_datetime(perspective_date)
