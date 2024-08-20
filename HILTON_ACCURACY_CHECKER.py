@@ -434,7 +434,7 @@ csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
 excel_file = st.file_uploader("Upload Operational Report or Daily Market Segment with Inncode (.xlsx)", type="xlsx")
 
 if excel_file:
-    inncode = st.text_input("Enter Inncode to process (mandatory if multiple properties in one extract):", value="")
+    inncode = st.text_input("Enter Inncode to process (mandatory if the extract contains multiple properties):", value="")
 else:
     inncode = ""
 
