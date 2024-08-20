@@ -31,16 +31,28 @@ def repair_xlsx(file):
 
 # Function to detect delimiter and load CSV file
 def load_csv(file):
-    content = file.read().decode('utf-8')
-    file_obj = io.StringIO(content)
-    sample = content[:1024]
-    dialect = csv.Sniffer().sniff(sample)
-    delimiter = dialect.delimiter
-    return pd.read_csv(file_obj, delimiter=delimiter)
+    if file is None:
+        st.error("No CSV file uploaded.")
+        return pd.DataFrame()
+    
+    try:
+        content = file.read().decode('utf-8')
+        file_obj = io.StringIO(content)
+        sample = content[:1024]
+        dialect = csv.Sniffer().sniff(sample)
+        delimiter = dialect.delimiter
+        return pd.read_csv(file_obj, delimiter=delimiter)
+    except Exception as e:
+        st.error(f"Error loading CSV file: {e}")
+        return pd.DataFrame()
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
     csv_data = load_csv(csv_file)
+    if csv_data.empty:
+        st.warning("CSV file could not be processed. Please check the file and try again.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+
     arrival_date_col = 'arrivalDate'
     rn_col = 'rn'
     revnet_col = 'revNet'
