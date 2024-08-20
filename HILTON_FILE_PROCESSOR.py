@@ -104,6 +104,21 @@ class FileProcessorApp:
             "ar_type_sub_code": "AR Type Sub Code",
             "house_key": "House Key"
         }, inplace=True)
+
+        # Ensure consistent column order
+        column_order = [
+            "Account ID", "Account Name", "Accounting Category", "Accounting ID", "Accounting ID Desc", "Accounting Type", 
+            "Business Date", "Charge Routed", "Common Account Identifier", "Confirmation Number", "CRS Inn Code", 
+            "Employee ID", "Entry Currency Code", "Entry Datetime", "Entry ID", "Entry Type", "Exchange Rate", 
+            "Extract Type", "Facility ID", "Foreign Amount", "GL Account ID", "GNR", "HHonors Receipt Ind", 
+            "Include in Net Use", "Inncode", "Insert Datetime UTC", "Ledger Entry Amount", "Original Folio ID", 
+            "Original Receipt ID", "Original Stay ID", "Partition Date", "PMS Inn Code", "Posting Type Code", 
+            "Rate Plan ID", "Rate Plan Type", "Receipt ID", "Routed to Folio", "Stay ID", "Trans Desc", "Trans ID", 
+            "Version", "Charge Category", "Group Key", "Group Name", "Trans Travel Reason Code", "AR Account Key", 
+            "AR Account ID", "AR Description", "AR Code", "AR Type Code", "AR Type Sub Code", "House Key", "Source File"
+        ]
+        df = df.reindex(columns=column_order)
+
         self.data_frames.append(df)
 
     def process_stay_file(self, df):
@@ -144,14 +159,28 @@ class FileProcessorApp:
             "tax_calculation_type": "Tax Calculation Type",
             "tax_included_ind": "Tax Included Ind",
             "transaction_datetime_utc": "Transaction Datetime UTC",
-            "version": "Version"
+            "version": "Version",
+            "Source File": "Source File"
         }, inplace=True)
+
+        # Ensure consistent column order
+        column_order = [
+            "Account ID", "Account Name", "Arrival Date", "Booked Date", "Booked Datetime", "Booking Segment Number", 
+            "Confirmation Number", "CRS Inn Code", "Departure Date", "Extract Type", "Facility ID", "Filename", 
+            "GNR", "Guarantee Type Code", "Guarantee Type Text", "Inncode", "Insert Datetime UTC", "MCAT Code", 
+            "No Show Ind", "Number of Adults", "Old Transaction Datetime UTC", "Originating Reservation Center", 
+            "Partition by Date ID", "Partition Date", "Prop CRS Room Rate", "Prop Currency Code", "Reservation Status", 
+            "Room Type Code", "SRP Code", "SRP Name", "SRP Type", "Stay Date", "Tax Calculation Type", 
+            "Tax Included Ind", "Transaction Datetime UTC", "Version", "Source File"
+        ]
+        df = df.reindex(columns=column_order)
+
         self.data_frames.append(df)
 
     def display_data(self, filter_criteria, inncode_filter, raw_data_container):
         if self.data_frames:
             # Concatenate all DataFrames into one
-            self.merged_data = pd.concat(self.data_frames)
+            self.merged_data = pd.concat(self.data_frames, ignore_index=True)
             # Apply filter criteria
             if filter_criteria:
                 criteria = filter_criteria.split(',')
