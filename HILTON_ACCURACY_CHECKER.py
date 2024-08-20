@@ -11,7 +11,7 @@ import xlsxwriter
 import os
 
 # Set Streamlit page configuration to wide layout
-st.set_page_config(layout="wide", page_title="Accuracy Check Tool")
+st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
 # Repair function for corrupted Excel files using in-memory operations
 def repair_xlsx(file):
@@ -428,13 +428,13 @@ def create_excel_download(results_df, future_results_df, base_filename, past_acc
     output.seek(0)
     return output, base_filename
 
-st.title('Accuracy Check Tool')
+st.title('Hilton Accuracy Check Tool')
 
 csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
-excel_file = st.file_uploader("Upload Operational Report (.xlsx)", type="xlsx")
+excel_file = st.file_uploader("Upload Operational Report or Daily Market Segment with Inncode (.xlsx)", type="xlsx")
 
 if excel_file:
-    inncode = st.text_input("Enter Inncode to process:", value="")
+    inncode = st.text_input("Enter Inncode to process (mandatory if multiple properties in one extract):", value="")
 else:
     inncode = ""
 
@@ -448,7 +448,7 @@ else:
     apply_vat = False
     vat_rate = None
 
-perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt):", value=datetime.now().date())
+perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt and Support UI extract):", value=datetime.now().date())
 
 if st.button("Process"):
     with st.spinner('Processing...'):
