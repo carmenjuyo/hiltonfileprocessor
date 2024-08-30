@@ -273,53 +273,38 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
         st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
-    if not results_df.empty or not future_results_df.empty:
-        st.subheader('RNs and Revenue Discrepancy Over Time')
-
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-        fig.add_trace(go.Bar(
-            x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
-            y=results_df['RN Difference'] if not results_df.empty else future_results_df['RN Difference'],
-            name='RNs Discrepancy',
-            marker_color='#469798'
-        ), secondary_y=False)
-
-        fig.add_trace(go.Scatter(
-            x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
-            y=results_df['Rev Difference'] if not results_df.empty else future_results_df['Rev Difference'],
-            name='Revenue Discrepancy',
-            mode='lines+markers',
-            line=dict(color='#BF3100', width=2),
-            marker=dict(size=8)
-        ), secondary_y=True)
-
-        max_room_discrepancy = results_df['RN Difference'].abs().max() if not results_df.empty else future_results_df['RN Difference'].abs().max()
-        max_revenue_discrepancy = results_df['Rev Difference'].abs().max() if not results_df.empty else future_results_df['Rev Difference'].abs().max()
-
-        fig.update_layout(
-            height=600,
-            title='RNs and Revenue Discrepancy Over Time',
-            xaxis_title='Date',
-            yaxis_title='RNs Discrepancy',
-            yaxis2_title='Revenue Discrepancy',
-            yaxis=dict(range=[-max_room_discrepancy, max_room_discrepancy]),
-            yaxis2=dict(range=[-max_revenue_discrepancy, max_revenue_discrepancy]),
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
-        )
-
-        fig.update_yaxes(matches=None, showgrid=True, gridwidth=1, gridcolor='grey')
-
-        st.plotly_chart(fig, use_container_width=True)
-
+    # Update display for past results with percentage formatting and color coding
     if not results_df.empty:
         st.subheader('Detailed Accuracy Comparison (Past)')
-        past_styled = results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
+        
+        # Define color scaling function for Streamlit
+        def color_scale(val):
+            if val >= 0.98:
+                color = '#469798'  # Green
+            elif 0.96 <= val < 0.98:
+                color = '#F2A541'  # Yellow
+            else:
+                color = '#BF3100'  # Red
+            return f'background-color: {color}'
+
+        # Format the DataFrame with percentages and apply color coding
+        past_styled = results_df.style.format({
+            'RN Percentage': '{:.2%}',
+            'Rev Percentage': '{:.2%}'
+        }).applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+        
         st.dataframe(past_styled, use_container_width=True)
 
+    # Update display for future results with percentage formatting and color coding
     if not future_results_df.empty:
         st.subheader('Detailed Accuracy Comparison (Future)')
-        future_styled = future_results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
+        
+        # Format the DataFrame with percentages and apply color coding
+        future_styled = future_results_df.style.format({
+            'RN Percentage': '{:.2%}',
+            'Rev Percentage': '{:.2%}'
+        }).applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+        
         st.dataframe(future_styled, use_container_width=True)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
