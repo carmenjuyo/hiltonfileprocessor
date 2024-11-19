@@ -45,9 +45,12 @@ def load_csv(file):
 
 # Helper function to find a column with case-insensitive matching
 def find_column(name, columns):
+    """
+    Finds a column name in the DataFrame that matches the given name, case-insensitively.
+    """
     for col in columns:
         if name.lower() in col.lower():
-            return col  # Return the original column name
+            return col.strip()  # Return the matched column name
     return None
 
 # Function to dynamically find headers and process data
@@ -57,6 +60,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.warning("CSV file could not be processed. Please check the file and try again.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
+    # Clean and log CSV columns
+    csv_data.columns = [col.strip() for col in csv_data.columns]
+    st.write("CSV Columns:", csv_data.columns.tolist())
+
+    # Dynamically find required columns in the CSV file
     arrival_date_col = find_column('arrivaldate', csv_data.columns)
     rn_col = find_column('rn', csv_data.columns)
     revnet_col = find_column('revnet', csv_data.columns)
@@ -79,7 +87,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     if excel_data is not None:
-        excel_data.columns = [col.lower().strip() for col in excel_data.columns]
+        # Clean and log Excel columns
+        excel_data.columns = [col.strip().lower() for col in excel_data.columns]
+        st.write("Excel Columns (Operational Report):", excel_data.columns.tolist())
+
         business_date_col = find_column('business date', excel_data.columns)
         sold_col = find_column('sold', excel_data.columns)
         rev_col = find_column('rev', excel_data.columns) or find_column('revenue', excel_data.columns)
@@ -139,7 +150,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
     if excel_data_2 is not None:
-        excel_data_2.columns = [col.lower().strip() for col in excel_data_2.columns]
+        # Clean and log Excel 2 columns
+        excel_data_2.columns = [col.strip().lower() for col in excel_data_2.columns]
+        st.write("Excel Columns (IDeaS):", excel_data_2.columns.tolist())
+
         occupancy_date_col = find_column('occupancy date', excel_data_2.columns)
         occupancy_books_col = find_column('occupancy on books this year', excel_data_2.columns)
         booked_revenue_col = find_column('booked room revenue this year', excel_data_2.columns)
