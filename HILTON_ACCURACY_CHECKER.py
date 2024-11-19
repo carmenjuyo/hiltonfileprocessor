@@ -53,18 +53,18 @@ def find_column(name, columns):
             return col.strip()  # Return the matched column name
     return None
 
-# Function to dynamically find headers and process data
+# Function to dynamically process uploaded files
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
+    # Load CSV and log columns
     csv_data = load_csv(csv_file)
     if csv_data.empty:
         st.warning("CSV file could not be processed. Please check the file and try again.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    # Clean and log CSV columns
     csv_data.columns = [col.strip() for col in csv_data.columns]
-    st.write("CSV Columns:", csv_data.columns.tolist())
+    st.write("CSV Columns Detected:", csv_data.columns.tolist())
 
-    # Dynamically find required columns in the CSV file
+    # Dynamically find required columns in CSV
     arrival_date_col = find_column('arrivaldate', csv_data.columns)
     rn_col = find_column('rn', csv_data.columns)
     revnet_col = find_column('revnet', csv_data.columns)
@@ -87,9 +87,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     if excel_data is not None:
-        # Clean and log Excel columns
         excel_data.columns = [col.strip().lower() for col in excel_data.columns]
-        st.write("Excel Columns (Operational Report):", excel_data.columns.tolist())
+        st.write("Excel 1 Columns (Operational Report):", excel_data.columns.tolist())
 
         business_date_col = find_column('business date', excel_data.columns)
         sold_col = find_column('sold', excel_data.columns)
@@ -150,9 +149,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
     if excel_data_2 is not None:
-        # Clean and log Excel 2 columns
         excel_data_2.columns = [col.strip().lower() for col in excel_data_2.columns]
-        st.write("Excel Columns (IDeaS):", excel_data_2.columns.tolist())
+        st.write("Excel 2 Columns (IDeaS Report):", excel_data_2.columns.tolist())
 
         occupancy_date_col = find_column('occupancy date', excel_data_2.columns)
         occupancy_books_col = find_column('occupancy on books this year', excel_data_2.columns)
@@ -220,3 +218,37 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+
+# Title and Introduction
+st.title("Hilton Accuracy Check Tool")
+st.subheader("Upload your files below to begin.")
+
+# File Upload
+csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
+excel_file = st.file_uploader("Upload Operational Report or Daily Market Segment (.xlsx)", type="xlsx")
+excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
+
+# Parameters
+if excel_file_2:
+    apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
+    vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1) if apply_vat else 0.0
+else:
+    apply_vat, vat_rate = False, 0.0
+
+perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt and Support UI extract):", value=datetime.now().date())
+
+# Button to Process
+if st.button("Process"):
+    if not csv_file or not excel_file or not excel_file_2:
+        st.error("Please upload all required files before processing.")
+    else:
+        with st.spinner("Processing your data..."):
+            try:
+                results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
+                    csv_file, excel_file, excel_file_2, None, perspective_date, apply_vat, vat_rate
+                )
+                st.success("Processing completed successfully!")
+                st.write("Past Results:", results_df)
+                st.write("Future Results:", future_results_df)
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
