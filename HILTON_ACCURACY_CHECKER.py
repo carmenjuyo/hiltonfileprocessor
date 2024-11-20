@@ -71,21 +71,41 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         if repaired_excel_file_2:
             # Process the second Excel sheet (Market Segment)
             try:
-                op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=0)
+                op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
 
-                # Normalize column names to ensure matching
-                op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
+                # Define the expected headers (case-insensitive)
+                expected_headers = {
+                    'occupancy date': None,
+                    'occupancy on books this year': None,
+                    'booked room revenue this year': None
+                }
 
-                # Expected columns (normalized)
-                required_columns = ['occupancy date', 'occupancy on books this year', 'booked room revenue this year']
+                # Iterate through the sheet up to column Z and look for headers dynamically
+                max_column = 26  # Column Z
+                for col in range(max_column):
+                    for row in range(len(op_data_2)):
+                        cell_value = str(op_data_2.iloc[row, col]).strip().lower()  # Case-insensitive matching
+                        if cell_value in expected_headers:
+                            expected_headers[cell_value] = (row, col)
 
-                # Check for missing columns
-                missing_columns = [col for col in required_columns if col not in op_data_2.columns]
-                if missing_columns:
-                    st.error(f"Missing required columns in the Market Segment data: {', '.join(missing_columns)}")
+                # Check if all required headers were found
+                missing_headers = [header for header, location in expected_headers.items() if location is None]
+                if missing_headers:
+                    st.error(f"Missing required headers in 'Market Segment' sheet: {', '.join(missing_headers)}")
                     return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-                # Rename columns to match internal usage
+                # Extract the row index where the actual data begins (assumes data starts after the header row)
+                header_row = max(location[0] for location in expected_headers.values()) + 1
+
+                # Map column positions to expected names
+                column_mapping = {location[1]: header for header, location in expected_headers.items()}
+
+                # Extract the data, renaming columns as required
+                data_columns = list(column_mapping.keys())
+                op_data_2 = op_data_2.iloc[header_row:, data_columns]
+                op_data_2.columns = [column_mapping[col] for col in data_columns]
+
+                # Normalize column names for internal consistency
                 op_data_2.rename(columns={
                     'occupancy date': 'occupancy_date',
                     'occupancy on books this year': 'occupancy_this_year',
@@ -100,11 +120,11 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 if apply_vat:
                     op_data_2['revenue_this_year'] = op_data_2['revenue_this_year'] / (1 + vat_rate / 100)
 
-                # Perform additional calculations or validations as needed
-                st.success("Second sheet processed successfully.")
+                # The data is now ready for further processing
+                st.success("Market Segment sheet processed successfully.")
 
             except Exception as e:
-                st.error(f"Error processing the Market Segment sheet: {e}")
+                st.error(f"Error processing the 'Market Segment' sheet: {e}")
                 return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     except Exception as e:
