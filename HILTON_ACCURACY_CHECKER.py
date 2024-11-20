@@ -172,30 +172,31 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
-    if excel_data_2 is not None:
-        headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
-        row_start_2 = None
+if excel_data_2 is not None:
+    try:
+        # Read the Market Segment sheet
+        op_data_2 = pd.read_excel(
+            repaired_excel_file_2,  # Assuming the file is repaired before passing here
+            sheet_name="Market Segment",
+            engine="openpyxl",
+            header=None  # No automatic header detection
+        )
 
-        for label in headers_2.keys():
-            headers_2[label] = find_header(label, excel_data_2)
-            if headers_2[label]:
-                if row_start_2 is None or headers_2[label][0] > row_start_2:
-                    row_start_2 = headers_2[label][0]
+        # Extract data starting from row 7 (index 6), columns C, F, I (indices 2, 5, 8)
+        op_data_2 = op_data_2.iloc[6:, [2, 5, 8]]
 
-        if not all(headers_2.values()):
-            st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
-            return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+        # Rename columns to match the expected names
+        op_data_2.columns = [
+            'occupancy date',
+            'occupancy on books this year',
+            'booked room revenue this year'
+        ]
 
-        op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
-        op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
-
-        if 'occupancy date' not in op_data_2.columns or 'occupancy on books this year' not in op_data_2.columns or 'booked room revenue this year' not in op_data_2.columns:
-            st.error("Expected columns 'Occupancy Date', 'Occupancy On Books This Year', or 'Booked Room Revenue This Year' not found in the second Excel file.")
-            return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
-
+        # Convert 'occupancy date' to datetime and drop invalid/missing dates
         op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
         op_data_2 = op_data_2.dropna(subset=['occupancy date'])
 
+        # Filter data for rows after the specified perspective_date
         if perspective_date:
             end_date = pd.to_datetime(perspective_date)
         else:
@@ -204,10 +205,16 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         future_data = csv_data[csv_data[arrival_date_col] > end_date]
         future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
 
+        # Identify common dates between the two datasets
         future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
 
-        grouped_data_2 = future_data_2.groupby('occupancy date').agg({'occupancy on books this year': 'sum', 'booked room revenue this year': 'sum'}).reset_index()
+        # Group data by occupancy date and calculate aggregates
+        grouped_data_2 = future_data_2.groupby('occupancy date').agg({
+            'occupancy on books this year': 'sum',
+            'booked room revenue this year': 'sum'
+        }).reset_index()
 
+        # Calculate future results
         future_results = []
         for _, row in future_data.iterrows():
             occupancy_date = row[arrival_date_col]
@@ -246,17 +253,24 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         future_results_df = pd.DataFrame(future_results)
 
+        # Calculate future accuracies
         future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
         future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
-    else:
+
+    except Exception as e:
+        st.error(f"Error processing the 'Market Segment' sheet: {e}")
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
-    if not results_df.empty or not future_results_df.empty:
-        accuracy_matrix = pd.DataFrame({
-            'Metric': ['RNs', 'Revenue'],
-            'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'] if not results_df.empty else ['N/A', 'N/A'],
-            'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
-        })
+else:
+    future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
+
+if not results_df.empty or not future_results_df.empty:
+    accuracy_matrix = pd.DataFrame({
+        'Metric': ['RNs', 'Revenue'],
+        'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'] if not results_df.empty else ['N/A', 'N/A'],
+        'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
+    })
+
 
         def color_scale(val):
             if isinstance(val, str) and '%' in val:
