@@ -223,8 +223,9 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             occupancy_sum = excel_row['occupancy on books this year'].values[0]
             booked_revenue_sum = excel_row['booked room revenue this year'].values[0]
 
-            if apply_vat:
+            if apply_vat and vat_rate is not None:
                 booked_revenue_sum /= (1 + vat_rate / 100)
+
 
             rn_diff = rn - occupancy_sum
             rev_diff = revnet - booked_revenue_sum
