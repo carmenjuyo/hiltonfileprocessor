@@ -44,30 +44,22 @@ def load_csv(file):
         st.error(f"Error loading CSV file: {e}")
         return pd.DataFrame()
 
-# Function to find column headers dynamically in the second Excel file
+# Function to dynamically find headers in a sheet
 def find_headers(sheet_data, required_headers):
-    """
-    Finds headers in a given DataFrame `sheet_data` by scanning row-wise up to column Z.
-    Returns a dictionary mapping required headers to their actual columns in the DataFrame.
-    """
     header_mapping = {header: None for header in required_headers}
-
-    for col in sheet_data.columns[:26]:  # Iterate up to column Z
+    for col in sheet_data.columns[:26]:  # Scan columns A-Z
         for row in range(sheet_data.shape[0]):
             cell_value = str(sheet_data.iloc[row, col]).strip().lower()
             for header in required_headers:
                 if header.lower() == cell_value:
-                    header_mapping[header] = col
+                    header_mapping[header] = (row, col)
                     break
-
-    # Ensure all headers were found
     missing_headers = [header for header, value in header_mapping.items() if value is None]
     if missing_headers:
-        raise ValueError(f"Missing required columns in the Market Segment data: {', '.join(missing_headers)}")
-
+        raise ValueError(f"Missing required columns: {', '.join(missing_headers)}")
     return header_mapping
 
-# Function to dynamically process files
+# Function to process files dynamically
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
     csv_data = load_csv(csv_file)
     if csv_data.empty:
@@ -94,54 +86,66 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.error(f"Error reading Excel files: {e}")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    # Process the "Market Segment" sheet
     if excel_data_2 is not None:
         try:
             required_headers = ['Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year']
             header_mapping = find_headers(excel_data_2, required_headers)
 
-            # Extract data starting from the header row
+            header_row = header_mapping['Occupancy Date'][0]
             op_data_2 = pd.read_excel(
                 repaired_excel_file_2,
                 sheet_name="Market Segment",
                 engine='openpyxl',
-                skiprows=header_mapping[required_headers[0]]
+                header=header_row
             )
 
-            # Normalize column names
             op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
-            op_data_2.rename(columns={
-                header_mapping['Occupancy Date']: 'occupancy_date',
-                header_mapping['Occupancy On Books This Year']: 'occupancy_this_year',
-                header_mapping['Booked Room Revenue This Year']: 'revenue_this_year'
-            }, inplace=True)
-
-            # Convert date and filter data by perspective date
-            op_data_2['occupancy_date'] = pd.to_datetime(op_data_2['occupancy_date'], errors='coerce')
+            op_data_2['occupancy_date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
             op_data_2 = op_data_2.dropna(subset=['occupancy_date'])
+
             if perspective_date:
                 perspective_date = pd.to_datetime(perspective_date)
                 op_data_2 = op_data_2[op_data_2['occupancy_date'] > perspective_date]
 
-            # Apply VAT if needed
             if apply_vat:
-                op_data_2['revenue_this_year'] /= (1 + vat_rate / 100)
+                op_data_2['booked room revenue this year'] /= (1 + vat_rate / 100)
 
             st.success("Market Segment sheet processed successfully.")
         except Exception as e:
-            st.error(f"Error processing the 'Market Segment' sheet: {e}")
+            st.error(f"Error processing 'Market Segment' sheet: {e}")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
     else:
         st.warning("No data found in the 'Market Segment' sheet.")
         return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    # Return processed results
-    # Simulating some calculations for demonstration purposes
-    future_results_df = pd.DataFrame(op_data_2)
-    past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev = 0, 0, 98.5, 95.6  # Example
-
+    future_results_df = op_data_2
+    past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev = 0, 0, 98.5, 95.6
     return pd.DataFrame(), past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
+# Function to create an Excel file for download
+def create_excel_download(results_df, future_results_df, base_filename, past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev):
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        workbook = writer.book
+
+        accuracy_matrix = pd.DataFrame({
+            'Metric': ['RNs', 'Revenue'],
+            'Past': [past_accuracy_rn / 100, past_accuracy_rev / 100],
+            'Future': [future_accuracy_rn / 100, future_accuracy_rev / 100]
+        })
+        accuracy_matrix.to_excel(writer, sheet_name='Accuracy Matrix', index=False, startrow=1)
+        worksheet = writer.sheets['Accuracy Matrix']
+
+        format_percent = workbook.add_format({'num_format': '0.00%'})
+        worksheet.set_column('B:C', None, format_percent)
+
+        if not future_results_df.empty:
+            future_results_df.to_excel(writer, sheet_name='Future Accuracy', index=False)
+
+    output.seek(0)
+    return output, base_filename
+
+# Streamlit app UI
 st.title('Hilton Accuracy Check Tool')
 
 csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
@@ -169,9 +173,18 @@ if st.button("Process"):
         results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
             csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
         )
-        
         if results_df.empty and future_results_df.empty:
             st.warning("No data to display after processing. Please check the input files and parameters.")
         else:
-            st.success("Data processed successfully!")
-            # Further processing like downloading Excel or displaying data can follow...
+            base_filename = os.path.splitext(os.path.basename(csv_file.name))[0].split('_')[0]
+            excel_data, base_filename = create_excel_download(
+                results_df, future_results_df, base_filename, 
+                past_accuracy_rn, past_accuracy_rev, 
+                future_accuracy_rn, future_accuracy_rev
+            )
+            st.download_button(
+                label="Download results as Excel",
+                data=excel_data,
+                file_name=f"{base_filename}_Accuracy_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
