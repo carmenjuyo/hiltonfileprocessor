@@ -171,85 +171,84 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         past_accuracy_rev = results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
+        
+if excel_data_2 is not None:
+    occupancy_date_col = find_column(op_data_2, ['occupancy date', 'date'])
+    occupancy_books_col = find_column(op_data_2, ['occupancy on books this year', 'rooms on books'])
+    booked_revenue_col = find_column(op_data_2, ['booked room revenue this year', 'total revenue'])
 
-    if excel_data_2 is not None:
-        headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
-        row_start_2 = None
+    if not all([occupancy_date_col, occupancy_books_col, booked_revenue_col]):
+        st.error("Missing one or more required columns in Excel File 2.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-        for label in headers_2.keys():
-            headers_2[label] = find_header(label, excel_data_2)
-            if headers_2[label]:
-                if row_start_2 is None or headers_2[label][0] > row_start_2:
-                    row_start_2 = headers_2[label][0]
+    op_data_2['occupancy date'] = pd.to_datetime(op_data_2[occupancy_date_col], errors='coerce')
+    op_data_2 = op_data_2.dropna(subset=['occupancy date'])
 
-        if not all(headers_2.values()):
-            st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
-            return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
-
-        op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
-        op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
-
-        if 'occupancy date' not in op_data_2.columns or 'occupancy on books this year' not in op_data_2.columns or 'booked room revenue this year' not in op_data_2.columns:
-            st.error("Expected columns 'Occupancy Date', 'Occupancy On Books This Year', or 'Booked Room Revenue This Year' not found in the second Excel file.")
-            return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
-
-        op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
-        op_data_2 = op_data_2.dropna(subset=['occupancy date'])
-
-        if perspective_date:
-            end_date = pd.to_datetime(perspective_date)
-        else:
-            end_date = datetime.now() - timedelta(days=1)
-
-        future_data = csv_data[csv_data[arrival_date_col] > end_date]
-        future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
-
-        future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
-
-        grouped_data_2 = future_data_2.groupby('occupancy date').agg({'occupancy on books this year': 'sum', 'booked room revenue this year': 'sum'}).reset_index()
-
-        future_results = []
-        for _, row in future_data.iterrows():
-            occupancy_date = row[arrival_date_col]
-            if occupancy_date not in future_common_dates:
-                continue
-            rn = row[rn_col]
-            revnet = row[revnet_col]
-
-            excel_row = grouped_data_2[grouped_data_2['occupancy date'] == occupancy_date]
-            if excel_row.empty:
-                continue
-
-            occupancy_sum = excel_row['occupancy on books this year'].values[0]
-            booked_revenue_sum = excel_row['booked room revenue this year'].values[0]
-
-            if apply_vat:
-                booked_revenue_sum /= (1 + vat_rate / 100)
-
-            rn_diff = rn - occupancy_sum
-            rev_diff = revnet - booked_revenue_sum
-
-            rn_percentage = 100 if rn == 0 else 100 - (abs(rn_diff) / rn) * 100
-            rev_percentage = 100 if revnet == 0 else 100 - (abs(rev_diff) / revnet) * 100
-
-            future_results.append({
-                'Business Date': occupancy_date,
-                'Juyo RN': int(rn),
-                'IDeaS RN': int(occupancy_sum),
-                'RN Difference': int(rn_diff),
-                'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
-                'Juyo Rev': revnet,
-                'IDeaS Rev': booked_revenue_sum,
-                'Rev Difference': rev_diff,
-                'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
-            })
-
-        future_results_df = pd.DataFrame(future_results)
-
-        future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
-        future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
+    if perspective_date:
+        end_date = pd.to_datetime(perspective_date)
     else:
-        future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
+        end_date = datetime.now() - timedelta(days=1)
+
+    future_data = csv_data[csv_data[arrival_date_col] > end_date]
+    future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
+
+    if future_data_2.empty:
+        st.warning("No future data found in Excel File 2.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+
+    future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
+
+    if not future_common_dates:
+        st.warning("No matching dates found between CSV data and Excel File 2.")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+
+    grouped_data_2 = future_data_2.groupby('occupancy date').agg({
+        occupancy_books_col: 'sum',
+        booked_revenue_col: 'sum'
+    }).reset_index()
+
+    future_results = []
+    for _, row in future_data.iterrows():
+        occupancy_date = row[arrival_date_col]
+        if occupancy_date not in future_common_dates:
+            continue
+        rn = row[rn_col]
+        revnet = row[revnet_col]
+
+        excel_row = grouped_data_2[grouped_data_2['occupancy date'] == occupancy_date]
+        if excel_row.empty:
+            continue
+
+        occupancy_sum = excel_row[occupancy_books_col].values[0]
+        booked_revenue_sum = excel_row[booked_revenue_col].values[0]
+
+        if apply_vat:
+            booked_revenue_sum /= (1 + vat_rate / 100)
+
+        rn_diff = rn - occupancy_sum
+        rev_diff = revnet - booked_revenue_sum
+
+        rn_percentage = 100 if rn == 0 else 100 - (abs(rn_diff) / rn) * 100
+        rev_percentage = 100 if revnet == 0 else 100 - (abs(rev_diff) / revnet) * 100
+
+        future_results.append({
+            'Business Date': occupancy_date,
+            'Juyo RN': int(rn),
+            'IDeaS RN': int(occupancy_sum),
+            'RN Difference': int(rn_diff),
+            'RN Percentage': rn_percentage / 100,
+            'Juyo Rev': revnet,
+            'IDeaS Rev': booked_revenue_sum,
+            'Rev Difference': rev_diff,
+            'Rev Percentage': rev_percentage / 100
+        })
+
+    future_results_df = pd.DataFrame(future_results)
+
+    future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100
+    future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100
+else:
+    future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
     if not results_df.empty or not future_results_df.empty:
         accuracy_matrix = pd.DataFrame({
