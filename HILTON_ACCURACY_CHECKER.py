@@ -83,7 +83,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         return None
 
     if excel_data is not None:
-        headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None, 'revenue': None}
+        headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None, 'revenue': None, 'hotel name': None}
         row_start = None
 
         for label in headers.keys():
@@ -107,6 +107,9 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             filtered_data = op_data[op_data['inncode'] == inncode]
         else:
             filtered_data = op_data
+
+        if 'hotel name' in filtered_data.columns:
+            filtered_data = filtered_data[filtered_data['hotel name'].str.lower() != 'total']
 
         if filtered_data.empty:
             st.warning("No data found for the given Inncode in the first Excel file.")
@@ -154,26 +157,40 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 'Juyo RN': int(rn),
                 'Hilton RN': int(sold_sum),
                 'RN Difference': int(rn_diff),
-                'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
+                'RN Percentage': rn_percentage / 100,
                 'Juyo Rev': revnet,
                 'Hilton Rev': rev_sum,
                 'Rev Difference': rev_diff,
-                'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
+                'Rev Percentage': rev_percentage / 100
             })
 
         results_df = pd.DataFrame(results)
 
-        past_accuracy_rn = results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
-        past_accuracy_rev = results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
+        past_accuracy_rn = results_df['RN Percentage'].mean() * 100
+        past_accuracy_rev = results_df['Rev Percentage'].mean() * 100
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
     if excel_data_2 is not None:
-        headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
+        def find_header_excel2(label, data):
+            max_cols = 26
+            max_rows = len(data)
+            for col in range(max_cols):
+                for row in range(max_rows):
+                    cell_value = str(data.iloc[row, col]).strip().lower()
+                    if cell_value == label.lower():
+                        return (row, col)
+            return None
+
+        headers_2 = {
+            'occupancy date': None,
+            'occupancy on books this year': None,
+            'booked room revenue this year': None
+        }
         row_start_2 = None
 
         for label in headers_2.keys():
-            headers_2[label] = find_header(label, excel_data_2)
+            headers_2[label] = find_header_excel2(label, excel_data_2)
             if headers_2[label]:
                 if row_start_2 is None or headers_2[label][0] > row_start_2:
                     row_start_2 = headers_2[label][0]
@@ -182,12 +199,17 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-        op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
-        op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
+        col_mapping = {}
+        for label in headers_2.keys():
+            col_index = headers_2[label][1]
+            col_mapping[col_index] = label.lower()
 
-        if 'occupancy date' not in op_data_2.columns or 'occupancy on books this year' not in op_data_2.columns or 'booked room revenue this year' not in op_data_2.columns:
-            st.error("Expected columns 'Occupancy Date', 'Occupancy On Books This Year', or 'Booked Room Revenue This Year' not found in the second Excel file.")
-            return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+        data_rows = excel_data_2.iloc[row_start_2 + 1:].reset_index(drop=True)
+        op_data_2 = pd.DataFrame()
+        for col_index, col_name in col_mapping.items():
+            op_data_2[col_name] = data_rows.iloc[:, col_index]
+
+        op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
 
         op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
         op_data_2 = op_data_2.dropna(subset=['occupancy date'])
@@ -202,7 +224,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
 
-        grouped_data_2 = future_data_2.groupby('occupancy date').agg({'occupancy on books this year': 'sum', 'booked room revenue this year': 'sum'}).reset_index()
+        grouped_data_2 = future_data_2.groupby('occupancy date').agg({
+            'occupancy on books this year': 'sum',
+            'booked room revenue this year': 'sum'
+        }).reset_index()
 
         future_results = []
         for _, row in future_data.iterrows():
@@ -233,17 +258,17 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 'Juyo RN': int(rn),
                 'IDeaS RN': int(occupancy_sum),
                 'RN Difference': int(rn_diff),
-                'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
+                'RN Percentage': rn_percentage / 100,
                 'Juyo Rev': revnet,
                 'IDeaS Rev': booked_revenue_sum,
                 'Rev Difference': rev_diff,
-                'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
+                'Rev Percentage': rev_percentage / 100
             })
 
         future_results_df = pd.DataFrame(future_results)
 
-        future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
-        future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
+        future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100
+        future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
@@ -269,56 +294,24 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
         st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
-    if not results_df.empty or not future_results_df.empty:
-        st.subheader('RNs and Revenue Discrepancy Over Time')
-
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-        fig.add_trace(go.Bar(
-            x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
-            y=results_df['RN Difference'] if not results_df.empty else future_results_df['RN Difference'],
-            name='RNs Discrepancy',
-            marker_color='#469798'
-        ), secondary_y=False)
-
-        fig.add_trace(go.Scatter(
-            x=results_df['Business Date'] if not results_df.empty else future_results_df['Business Date'],
-            y=results_df['Rev Difference'] if not results_df.empty else future_results_df['Rev Difference'],
-            name='Revenue Discrepancy',
-            mode='lines+markers',
-            line=dict(color='#BF3100', width=2),
-            marker=dict(size=8)
-        ), secondary_y=True)
-
-        max_room_discrepancy = results_df['RN Difference'].abs().max() if not results_df.empty else future_results_df['RN Difference'].abs().max()
-        max_revenue_discrepancy = results_df['Rev Difference'].abs().max() if not results_df.empty else future_results_df['Rev Difference'].abs().max()
-
-        fig.update_layout(
-            height=600,
-            title='RNs and Revenue Discrepancy Over Time',
-            xaxis_title='Date',
-            yaxis_title='RNs Discrepancy',
-            yaxis2_title='Revenue Discrepancy',
-            yaxis=dict(range=[-max_room_discrepancy, max_room_discrepancy]),
-            yaxis2=dict(range=[-max_revenue_discrepancy, max_revenue_discrepancy]),
-            legend=dict(yanchor="top", y=0.99, xanchor="left", x=0.01)
-        )
-
-        fig.update_yaxes(matches=None, showgrid=True, gridwidth=1, gridcolor='grey')
-
-        st.plotly_chart(fig, use_container_width=True)
-
     if not results_df.empty:
         st.subheader('Detailed Accuracy Comparison (Past)')
-        past_styled = results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
+        past_styled = results_df.style.format({
+            'RN Percentage': '{:.2%}',
+            'Rev Percentage': '{:.2%}'
+        }).applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
         st.dataframe(past_styled, use_container_width=True)
 
     if not future_results_df.empty:
         st.subheader('Detailed Accuracy Comparison (Future)')
-        future_styled = future_results_df.style.applymap(lambda val: color_scale(val), subset=['RN Percentage', 'Rev Percentage'])
+        future_styled = future_results_df.style.format({
+            'RN Percentage': '{:.2%}',
+            'Rev Percentage': '{:.2%}'
+        }).applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
         st.dataframe(future_styled, use_container_width=True)
 
     return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+
 
 # Function to create Excel file for download with color formatting and accuracy matrix
 def create_excel_download(results_df, future_results_df, base_filename, past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev):
