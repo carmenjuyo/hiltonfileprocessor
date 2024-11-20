@@ -291,20 +291,20 @@ else:
     future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
 
-    def color_scale(val):
-        if isinstance(val, str) and '%' in val:
-            val = float(val.strip('%'))
-            if val >= 98:
-                return 'background-color: #469798'
-            elif 95 <= val < 98:
-                return 'background-color: #F2A541'
-            else:
-                return 'background-color: #BF3100'
-        return ''
+def color_scale(val):
+if isinstance(val, str) and '%' in val:
+    val = float(val.strip('%'))
+    if val >= 98:
+        return 'background-color: #469798'
+    elif 95 <= val < 98:
+        return 'background-color: #F2A541'
+    else:
+        return 'background-color: #BF3100'
+return ''
 
-    accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
-    st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
-    st.dataframe(accuracy_matrix_styled, use_container_width=True)
+accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
+st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
+st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
 if not results_df.empty:
     st.subheader('Detailed Accuracy Comparison (Past)')
