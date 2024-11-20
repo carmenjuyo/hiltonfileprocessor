@@ -171,9 +171,14 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
-    if excel_data_2 is not None:
+if excel_file_2 is not None:
+    try:
+        # Load the "Market Segment" sheet
+        excel_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=None)
+
+        # Function to dynamically find the required headers
         def find_header_excel2(label, data):
-            max_cols = 26
+            max_cols = 26  # A-Z corresponds to 26 columns
             max_rows = len(data)
             for col in range(max_cols):
                 for row in range(max_rows):
@@ -182,6 +187,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                         return (row, col)
             return None
 
+        # Define the headers to look for
         headers_2 = {
             'occupancy date': None,
             'occupancy on books this year': None,
@@ -189,31 +195,37 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         }
         row_start_2 = None
 
+        # Search for each header in the dataset
         for label in headers_2.keys():
             headers_2[label] = find_header_excel2(label, excel_data_2)
             if headers_2[label]:
                 if row_start_2 is None or headers_2[label][0] > row_start_2:
                     row_start_2 = headers_2[label][0]
 
+        # Ensure all headers are found
         if not all(headers_2.values()):
-            st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
+            missing_headers = [label for label, pos in headers_2.items() if pos is None]
+            st.error(f"Missing required headers in Excel File 2: {', '.join(missing_headers)}")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
+        # Map the found headers to their column positions
         col_mapping = {}
         for label in headers_2.keys():
             col_index = headers_2[label][1]
             col_mapping[col_index] = label.lower()
 
+        # Extract data rows starting from the first data row after the header
         data_rows = excel_data_2.iloc[row_start_2 + 1:].reset_index(drop=True)
         op_data_2 = pd.DataFrame()
         for col_index, col_name in col_mapping.items():
             op_data_2[col_name] = data_rows.iloc[:, col_index]
 
+        # Standardise column names and clean the data
         op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
-
         op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
         op_data_2 = op_data_2.dropna(subset=['occupancy date'])
 
+        # Filter future data based on the perspective date
         if perspective_date:
             end_date = pd.to_datetime(perspective_date)
         else:
@@ -222,13 +234,14 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         future_data = csv_data[csv_data[arrival_date_col] > end_date]
         future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
 
+        # Identify common dates and aggregate data for calculations
         future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
-
         grouped_data_2 = future_data_2.groupby('occupancy date').agg({
             'occupancy on books this year': 'sum',
             'booked room revenue this year': 'sum'
         }).reset_index()
 
+        # Calculate accuracy for future data
         future_results = []
         for _, row in future_data.iterrows():
             occupancy_date = row[arrival_date_col]
@@ -269,8 +282,14 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100
         future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100
-    else:
+
+    except Exception as e:
+        st.error(f"Error processing Excel File 2: {e}")
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
+else:
+    st.warning("No Excel File 2 uploaded.")
+    future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
+
 
     if not results_df.empty or not future_results_df.empty:
         accuracy_matrix = pd.DataFrame({
