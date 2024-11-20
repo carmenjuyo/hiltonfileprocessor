@@ -172,6 +172,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
+ # Second Excel file processing
     if excel_data_2 is not None:
         headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
         row_start_2 = None
@@ -188,10 +189,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
         op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
         op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
-
-        if 'occupancy date' not in op_data_2.columns or 'occupancy on books this year' not in op_data_2.columns or 'booked room revenue this year' not in op_data_2.columns:
-            st.error("Expected columns 'Occupancy Date', 'Occupancy On Books This Year', or 'Booked Room Revenue This Year' not found in the second Excel file.")
-            return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
         op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
         op_data_2 = op_data_2.dropna(subset=['occupancy date'])
@@ -223,9 +220,9 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             occupancy_sum = excel_row['occupancy on books this year'].values[0]
             booked_revenue_sum = excel_row['booked room revenue this year'].values[0]
 
+            # Apply VAT only if enabled
             if apply_vat and vat_rate is not None:
                 booked_revenue_sum /= (1 + vat_rate / 100)
-
 
             rn_diff = rn - occupancy_sum
             rev_diff = revnet - booked_revenue_sum
@@ -251,6 +248,8 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
+
+    return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
 
     if not results_df.empty or not future_results_df.empty:
         accuracy_matrix = pd.DataFrame({
