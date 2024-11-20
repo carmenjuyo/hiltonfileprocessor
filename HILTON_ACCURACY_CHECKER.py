@@ -274,25 +274,54 @@ if not results_df.empty or not future_results_df.empty:
         'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
     })
 
+    def color_scale(val):
+        if isinstance(val, str) and '%' in val:
+            val = float(val.strip('%'))
+            if val >= 98:
+                return 'background-color: #469798'  # Green
+            elif 95 <= val < 98:
+                return 'background-color: #F2A541'  # Yellow
+            else:
+                return 'background-color: #BF3100'  # Red
+        return ''
 
-        def color_scale(val):
-            if isinstance(val, str) and '%' in val:
-                val = float(val.strip('%'))
-                if val >= 98:
-                    return 'background-color: #469798'
-                elif 95 <= val < 98:
-                    return 'background-color: #F2A541'
-                else:
-                    return 'background-color: #BF3100'
-            return ''
+    # Apply color scale to the accuracy matrix
+    accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
+    st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
+    st.dataframe(accuracy_matrix_styled, use_container_width=True)
 
-        accuracy_matrix_styled = accuracy_matrix.style.applymap(color_scale, subset=['Past', 'Future'])
-        st.subheader(f'Accuracy Matrix for the hotel with code: {inncode}')
-        st.dataframe(accuracy_matrix_styled, use_container_width=True)
+# Update display for past results with percentage formatting and color coding
+if not results_df.empty:
+    st.subheader('Detailed Accuracy Comparison (Past)')
 
-    # Update display for past results with percentage formatting and color coding
-    if not results_df.empty:
-        st.subheader('Detailed Accuracy Comparison (Past)')
+    def color_scale(val):
+        if val >= 0.98:
+            color = '#469798'  # Green
+        elif 0.96 <= val < 0.98:
+            color = '#F2A541'  # Yellow
+        else:
+            color = '#BF3100'  # Red
+        return f'background-color: {color}'
+
+    past_styled = results_df.style.format({
+        'RN Percentage': '{:.2%}',
+        'Rev Percentage': '{:.2%}'
+    }).applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+
+    st.dataframe(past_styled, use_container_width=True)
+
+# Update display for future results with percentage formatting and color coding
+if not future_results_df.empty:
+    st.subheader('Detailed Accuracy Comparison (Future)')
+
+    future_styled = future_results_df.style.format({
+        'RN Percentage': '{:.2%}',
+        'Rev Percentage': '{:.2%}'
+    }).applymap(color_scale, subset=['RN Percentage', 'Rev Percentage'])
+
+    st.dataframe(future_styled, use_container_width=True)
+
+
         
         # Define color scaling function for Streamlit
         def color_scale(val):
