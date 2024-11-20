@@ -46,27 +46,10 @@ def load_csv(file):
 
 # Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
-    # Define all possible headers and their mappings
-    available_headers = {
-        'property name': 'property_name',
-        'day of week': 'day_of_week',
-        'occupancy date': 'occupancy_date',
-        'comparison date last year': 'comparison_date_last_year',
-        'market segment': 'market_segment',
-        'occupancy on books this year': 'occupancy_this_year',
-        'occupancy on books last year actual': 'occupancy_last_year_actual',
-        'booked room revenue this year': 'revenue_this_year',
-        'booked room revenue last year actual': 'revenue_last_year_actual'
-    }
-
-    # Initialize return variables to prevent NameError
-    results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
-    future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
-
     csv_data = load_csv(csv_file)
     if csv_data.empty:
         st.warning("CSV file could not be processed. Please check the file and try again.")
-        return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     arrival_date_col = 'arrivalDate'
     rn_col = 'rn'
@@ -74,7 +57,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     if arrival_date_col not in csv_data.columns:
         st.error(f"Expected column '{arrival_date_col}' not found in CSV file.")
-        return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
     csv_data[arrival_date_col] = pd.to_datetime(csv_data[arrival_date_col], errors='coerce')
     csv_data = csv_data.dropna(subset=[arrival_date_col])
@@ -83,38 +66,54 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     repaired_excel_file_2 = repair_xlsx(excel_file_2) if excel_file_2 else None
 
     try:
-        # Read the first Excel file (Operational Report)
         excel_data = pd.read_excel(repaired_excel_file, sheet_name=0, engine='openpyxl', header=None) if repaired_excel_file else None
 
-        # Read the second Excel file (Market Segment)
         if repaired_excel_file_2:
-            op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=0)
-            op_data_2.columns = [available_headers.get(col.lower().strip(), col.lower().strip()) for col in op_data_2.columns]
+            # Process the second Excel sheet (Market Segment)
+            try:
+                op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=0)
 
-            # Ensure required columns are present
-            required_columns = ['occupancy_date', 'occupancy_this_year', 'revenue_this_year']
-            missing_columns = [col for col in required_columns if col not in op_data_2.columns]
-            if missing_columns:
-                st.error(f"Missing required columns in the Market Segment data: {', '.join(missing_columns)}")
-                return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+                # Normalize column names to ensure matching
+                op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
 
-            # Convert dates and clean data
-            op_data_2['occupancy_date'] = pd.to_datetime(op_data_2['occupancy_date'], errors='coerce')
-            op_data_2 = op_data_2.dropna(subset=['occupancy_date'])
+                # Expected columns (normalized)
+                required_columns = ['occupancy date', 'occupancy on books this year', 'booked room revenue this year']
 
-            # Apply VAT if needed
-            if apply_vat:
-                op_data_2['revenue_this_year'] = op_data_2['revenue_this_year'] / (1 + vat_rate / 100)
+                # Check for missing columns
+                missing_columns = [col for col in required_columns if col not in op_data_2.columns]
+                if missing_columns:
+                    st.error(f"Missing required columns in the Market Segment data: {', '.join(missing_columns)}")
+                    return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-            # Process future data logic here...
-            pass
+                # Rename columns to match internal usage
+                op_data_2.rename(columns={
+                    'occupancy date': 'occupancy_date',
+                    'occupancy on books this year': 'occupancy_this_year',
+                    'booked room revenue this year': 'revenue_this_year'
+                }, inplace=True)
+
+                # Convert 'occupancy_date' to datetime
+                op_data_2['occupancy_date'] = pd.to_datetime(op_data_2['occupancy_date'], errors='coerce')
+                op_data_2 = op_data_2.dropna(subset=['occupancy_date'])
+
+                # Apply VAT adjustment if required
+                if apply_vat:
+                    op_data_2['revenue_this_year'] = op_data_2['revenue_this_year'] / (1 + vat_rate / 100)
+
+                # Perform additional calculations or validations as needed
+                st.success("Second sheet processed successfully.")
+
+            except Exception as e:
+                st.error(f"Error processing the Market Segment sheet: {e}")
+                return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+
     except Exception as e:
-        st.error(f"Error processing Excel files: {e}")
-        return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+        st.error(f"Error reading Excel files: {e}")
+        return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-    # Additional logic for past and future calculations here...
+    # Placeholder: Add further logic for past and future accuracy calculations
 
-    return results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev
+    return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
 # Streamlit UI components
 st.title('Hilton Accuracy Check Tool')
