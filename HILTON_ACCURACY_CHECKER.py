@@ -81,9 +81,9 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 }
 
                 # Iterate through the sheet up to column Z and look for headers dynamically
-                max_column = 26  # Column Z
+                max_column = min(26, op_data_2.shape[1])  # Ensure we don't exceed the number of columns in the sheet
                 for col in range(max_column):
-                    for row in range(len(op_data_2)):
+                    for row in range(op_data_2.shape[0]):  # Ensure we don't exceed the number of rows in the sheet
                         cell_value = str(op_data_2.iloc[row, col]).strip().lower()  # Case-insensitive matching
                         if cell_value in expected_headers:
                             expected_headers[cell_value] = (row, col)
@@ -102,6 +102,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
                 # Extract the data, renaming columns as required
                 data_columns = list(column_mapping.keys())
+                if header_row >= op_data_2.shape[0]:  # Check if header_row is within bounds
+                    st.error("Header row index exceeds available data rows in 'Market Segment' sheet.")
+                    return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
+
                 op_data_2 = op_data_2.iloc[header_row:, data_columns]
                 op_data_2.columns = [column_mapping[col] for col in data_columns]
 
