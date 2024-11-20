@@ -173,7 +173,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         past_accuracy_rn = results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
         past_accuracy_rev = results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
 
-if excel_data_2 is not None:
+if excel_file_2 is not None:
     try:
         # Read the Market Segment sheet
         op_data_2 = pd.read_excel(
