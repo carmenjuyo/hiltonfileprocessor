@@ -3,17 +3,13 @@ import pandas as pd
 from datetime import datetime, timedelta
 import csv
 import io
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from io import BytesIO
 import zipfile
 import xlsxwriter
 import os
 
-# Set Streamlit page configuration to wide layout
 st.set_page_config(layout="wide", page_title="Hilton Accuracy Check Tool")
 
-# Repair function for corrupted Excel files using in-memory operations
 def repair_xlsx(file):
     repaired_file = BytesIO()
     with zipfile.ZipFile(file, 'r') as zip_ref:
@@ -29,7 +25,6 @@ def repair_xlsx(file):
     repaired_file.seek(0)
     return repaired_file
 
-# Function to detect delimiter and load CSV file
 def load_csv(file):
     if file is None:
         st.error("No CSV file uploaded.")
@@ -46,7 +41,6 @@ def load_csv(file):
         st.error(f"Error loading CSV file: {e}")
         return pd.DataFrame()
 
-# Function to dynamically find headers and process data
 def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate):
     csv_data = load_csv(csv_file)
     if csv_data.empty:
@@ -84,10 +78,9 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
 
     if excel_data_2 is not None:
         try:
-            # Function to find headers dynamically up to column Z
             def find_headers_in_sheet(data, headers_to_find):
                 found_headers = {}
-                for col in data.columns[:26]:  # Restrict to columns A-Z
+                for col in data.columns[:26]:
                     for row in range(len(data)):
                         cell_value = str(data[col][row]).strip().lower()
                         for header in headers_to_find:
@@ -98,12 +91,10 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             headers_to_find = ['occupancy date', 'occupancy on books this year', 'booked room revenue this year']
             headers_found = find_headers_in_sheet(excel_data_2, headers_to_find)
 
-            # Check if all headers are found
             if len(headers_found) < len(headers_to_find):
                 st.error("Could not find all required headers ('Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year') in the second Excel file.")
                 return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
 
-            # Use the highest row number among the headers found as the header row
             row_start_2 = max([position[0] for position in headers_found.values()])
             op_data_2 = pd.read_excel(repaired_excel_file_2, sheet_name="Market Segment", engine='openpyxl', header=row_start_2)
             op_data_2.columns = [col.lower().strip() for col in op_data_2.columns]
@@ -156,86 +147,28 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                     'Juyo RN': int(rn),
                     'IDeaS RN': int(occupancy_sum),
                     'RN Difference': int(rn_diff),
-                    'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
+                    'RN Percentage': rn_percentage / 100,
                     'Juyo Rev': revnet,
                     'IDeaS Rev': booked_revenue_sum,
                     'Rev Difference': rev_diff,
-                    'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
+                    'Rev Percentage': rev_percentage / 100
                 })
 
             future_results_df = pd.DataFrame(future_results)
 
-            future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
-            future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
+            future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100
+            future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100
         except Exception as e:
             st.error(f"Error processing the second Excel file: {e}")
             return pd.DataFrame(), 0, 0, pd.DataFrame(), 0, 0
     else:
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
-# Function to create an Excel file for download
-def create_excel_download(results_df, future_results_df, base_filename, past_accuracy_rn, past_accuracy_rev, future_accuracy_rn, future_accuracy_rev):
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        workbook = writer.book
-
+    if not results_df.empty or not future_results_df.empty:
         accuracy_matrix = pd.DataFrame({
             'Metric': ['RNs', 'Revenue'],
-            'Past': [past_accuracy_rn / 100, past_accuracy_rev / 100],
-            'Future': [future_accuracy_rn / 100, future_accuracy_rev / 100]
+            'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'] if not results_df.empty else ['N/A', 'N/A'],
+            'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
         })
-        accuracy_matrix.to_excel(writer, sheet_name='Accuracy Matrix', index=False, startrow=1)
-        worksheet = writer.sheets['Accuracy Matrix']
 
-        format_percent = workbook.add_format({'num_format': '0.00%'})
-        worksheet.set_column('B:C', None, format_percent)
-
-        if not future_results_df.empty:
-            future_results_df.to_excel(writer, sheet_name='Future Accuracy', index=False)
-
-    output.seek(0)
-    return output, base_filename
-
-# Streamlit app UI
-st.title('Hilton Accuracy Check Tool')
-
-csv_file = st.file_uploader("Upload Daily Totals Extract (.csv)", type="csv")
-excel_file = st.file_uploader("Upload Operational Report or Daily Market Segment with Inncode (.xlsx)", type="xlsx")
-
-if excel_file:
-    inncode = st.text_input("Enter Inncode to process (mandatory if the extract contains multiple properties):", value="")
-else:
-    inncode = ""
-
-excel_file_2 = st.file_uploader("Upload IDeaS Report (.xlsx)", type="xlsx")
-
-if excel_file_2:
-    apply_vat = st.checkbox("Apply VAT deduction to IDeaS revenue?", value=False)
-    if apply_vat:
-        vat_rate = st.number_input("Enter VAT rate (%)", min_value=0.0, value=0.0, step=0.1)
-else:
-    apply_vat = False
-    vat_rate = None
-
-perspective_date = st.date_input("Enter perspective date (Date of the IDeaS file receipt and Support UI extract):", value=datetime.now().date())
-
-if st.button("Process"):
-    with st.spinner('Processing...'):
-        results_df, past_accuracy_rn, past_accuracy_rev, future_results_df, future_accuracy_rn, future_accuracy_rev = dynamic_process_files(
-            csv_file, excel_file, excel_file_2, inncode, perspective_date, apply_vat, vat_rate
-        )
-        if results_df.empty and future_results_df.empty:
-            st.warning("No data to display after processing. Please check the input files and parameters.")
-        else:
-            base_filename = os.path.splitext(os.path.basename(csv_file.name))[0].split('_')[0]
-            excel_data, base_filename = create_excel_download(
-                results_df, future_results_df, base_filename, 
-                past_accuracy_rn, past_accuracy_rev, 
-                future_accuracy_rn, future_accuracy_rev
-            )
-            st.download_button(
-                label="Download results as Excel",
-                data=excel_data,
-                file_name=f"{base_filename}_Accuracy_Results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
+    return future_results_df, future_accuracy_rn, future_accuracy_rev
