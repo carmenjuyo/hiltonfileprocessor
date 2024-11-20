@@ -158,7 +158,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
                 'Juyo RN': int(rn),
                 'Hilton RN': int(sold_sum),
                 'RN Difference': int(rn_diff),
-                'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
+                'RN Percentage': rn_percentage,  # Store as decimal for Excel
                 'Juyo Rev': revnet,
                 'Hilton Rev': rev_sum,
                 'Rev Difference': rev_diff,
