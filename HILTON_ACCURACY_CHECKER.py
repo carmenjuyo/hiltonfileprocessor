@@ -291,13 +291,6 @@ else:
     future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
 
 
-    if not results_df.empty or not future_results_df.empty:
-        accuracy_matrix = pd.DataFrame({
-            'Metric': ['RNs', 'Revenue'],
-            'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'] if not results_df.empty else ['N/A', 'N/A'],
-            'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
-        })
-
         def color_scale(val):
             if isinstance(val, str) and '%' in val:
                 val = float(val.strip('%'))
