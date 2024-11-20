@@ -172,105 +172,108 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
     else:
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
-    if excel_data_2 is not None:
-        try:
-            # Read the Market Segment sheet
-            op_data_2 = pd.read_excel(
-                repaired_excel_file_2,  # Assuming the file is repaired before passing here
-                sheet_name="Market Segment",
-                engine="openpyxl",
-                header=None  # No automatic header detection
-            )
-    
-            # Extract data starting from row 7 (index 6), columns C, F, I (indices 2, 5, 8)
-            op_data_2 = op_data_2.iloc[6:, [2, 5, 8]]
-    
-            # Rename columns to match the expected names
-            op_data_2.columns = [
-                'occupancy date',
-                'occupancy on books this year',
-                'booked room revenue this year'
-            ]
-    
-            # Convert 'occupancy date' to datetime and drop invalid/missing dates
-            op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
-            op_data_2 = op_data_2.dropna(subset=['occupancy date'])
-    
-            # Filter data for rows after the specified perspective_date
-            if perspective_date:
-                end_date = pd.to_datetime(perspective_date)
-            else:
-                end_date = datetime.now() - timedelta(days=1)
-    
-            future_data = csv_data[csv_data[arrival_date_col] > end_date]
-            future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
-    
-            # Identify common dates between the two datasets
-            future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
-    
-            # Group data by occupancy date and calculate aggregates
-            grouped_data_2 = future_data_2.groupby('occupancy date').agg({
-                'occupancy on books this year': 'sum',
-                'booked room revenue this year': 'sum'
-            }).reset_index()
-    
-            # Calculate future results
-            future_results = []
-            for _, row in future_data.iterrows():
-                occupancy_date = row[arrival_date_col]
-                if occupancy_date not in future_common_dates:
-                    continue
-                rn = row[rn_col]
-                revnet = row[revnet_col]
-    
-                excel_row = grouped_data_2[grouped_data_2['occupancy date'] == occupancy_date]
-                if excel_row.empty:
-                    continue
-    
-                occupancy_sum = excel_row['occupancy on books this year'].values[0]
-                booked_revenue_sum = excel_row['booked room revenue this year'].values[0]
-    
-                if apply_vat:
-                    booked_revenue_sum /= (1 + vat_rate / 100)
-    
-                rn_diff = rn - occupancy_sum
-                rev_diff = revnet - booked_revenue_sum
-    
-                rn_percentage = 100 if rn == 0 else 100 - (abs(rn_diff) / rn) * 100
-                rev_percentage = 100 if revnet == 0 else 100 - (abs(rev_diff) / revnet) * 100
-    
-                future_results.append({
-                    'Business Date': occupancy_date,
-                    'Juyo RN': int(rn),
-                    'IDeaS RN': int(occupancy_sum),
-                    'RN Difference': int(rn_diff),
-                    'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
-                    'Juyo Rev': revnet,
-                    'IDeaS Rev': booked_revenue_sum,
-                    'Rev Difference': rev_diff,
-                    'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
-                })
-    
-            future_results_df = pd.DataFrame(future_results)
-    
-            # Calculate future accuracies
-            future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
-            future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
-    
-        except Exception as e:
-            st.error(f"Error processing the 'Market Segment' sheet: {e}")
-            future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
-    
-    else:
+if excel_data_2 is not None:
+    try:
+        # Read the Market Segment sheet
+        op_data_2 = pd.read_excel(
+            repaired_excel_file_2,  # Assuming the file is repaired before passing here
+            sheet_name="Market Segment",
+            engine="openpyxl",
+            header=None  # No automatic header detection
+        )
+
+        # Find the actual data headers dynamically
+        header_row_index = 6  # Assuming the headers are located in the 7th row (index 6)
+        op_data_2.columns = op_data_2.iloc[header_row_index]  # Set headers
+        op_data_2 = op_data_2.iloc[header_row_index + 1:]  # Skip the header row
+
+        # Select relevant columns based on dynamic detection
+        op_data_2 = op_data_2[['Occupancy Date', 'Occupancy On Books This Year', 'Booked Room Revenue This Year']]
+        op_data_2.columns = [
+            'occupancy date',
+            'occupancy on books this year',
+            'booked room revenue this year'
+        ]
+
+        # Convert 'occupancy date' to datetime and drop invalid/missing dates
+        op_data_2['occupancy date'] = pd.to_datetime(op_data_2['occupancy date'], errors='coerce')
+        op_data_2 = op_data_2.dropna(subset=['occupancy date'])
+
+        # Filter data for rows after the specified perspective_date
+        if perspective_date:
+            end_date = pd.to_datetime(perspective_date)
+        else:
+            end_date = datetime.now() - timedelta(days=1)
+
+        future_data = csv_data[csv_data[arrival_date_col] > end_date]
+        future_data_2 = op_data_2[op_data_2['occupancy date'] > end_date]
+
+        # Identify common dates between the two datasets
+        future_common_dates = set(future_data[arrival_date_col]).intersection(set(future_data_2['occupancy date']))
+
+        # Group data by occupancy date and calculate aggregates
+        grouped_data_2 = future_data_2.groupby('occupancy date').agg({
+            'occupancy on books this year': 'sum',
+            'booked room revenue this year': 'sum'
+        }).reset_index()
+
+        # Calculate future results
+        future_results = []
+        for _, row in future_data.iterrows():
+            occupancy_date = row[arrival_date_col]
+            if occupancy_date not in future_common_dates:
+                continue
+            rn = row[rn_col]
+            revnet = row[revnet_col]
+
+            excel_row = grouped_data_2[grouped_data_2['occupancy date'] == occupancy_date]
+            if excel_row.empty:
+                continue
+
+            occupancy_sum = excel_row['occupancy on books this year'].values[0]
+            booked_revenue_sum = excel_row['booked room revenue this year'].values[0]
+
+            if apply_vat:
+                booked_revenue_sum /= (1 + vat_rate / 100)
+
+            rn_diff = rn - occupancy_sum
+            rev_diff = revnet - booked_revenue_sum
+
+            rn_percentage = 100 if rn == 0 else 100 - (abs(rn_diff) / rn) * 100
+            rev_percentage = 100 if revnet == 0 else 100 - (abs(rev_diff) / revnet) * 100
+
+            future_results.append({
+                'Business Date': occupancy_date,
+                'Juyo RN': int(rn),
+                'IDeaS RN': int(occupancy_sum),
+                'RN Difference': int(rn_diff),
+                'RN Percentage': rn_percentage / 100,  # Store as decimal for Excel
+                'Juyo Rev': revnet,
+                'IDeaS Rev': booked_revenue_sum,
+                'Rev Difference': rev_diff,
+                'Rev Percentage': rev_percentage / 100  # Store as decimal for Excel
+            })
+
+        future_results_df = pd.DataFrame(future_results)
+
+        # Calculate future accuracies
+        future_accuracy_rn = future_results_df['RN Percentage'].mean() * 100  # Convert back to percentage for display
+        future_accuracy_rev = future_results_df['Rev Percentage'].mean() * 100  # Convert back to percentage for display
+
+    except Exception as e:
+        st.error(f"Error processing the 'Market Segment' sheet: {e}")
         future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
-    
-    if not results_df.empty or not future_results_df.empty:
-        accuracy_matrix = pd.DataFrame({
-            'Metric': ['RNs', 'Revenue'],
-            'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'] if not results_df.empty else ['N/A', 'N/A'],
-            'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
-        })
-    
+
+else:
+    future_results_df, future_accuracy_rn, future_accuracy_rev = pd.DataFrame(), 0, 0
+
+if not results_df.empty or not future_results_df.empty:
+    accuracy_matrix = pd.DataFrame({
+        'Metric': ['RNs', 'Revenue'],
+        'Past': [f'{past_accuracy_rn:.2f}%', f'{past_accuracy_rev:.2f}%'] if not results_df.empty else ['N/A', 'N/A'],
+        'Future': [f'{future_accuracy_rn:.2f}%', f'{future_accuracy_rev:.2f}%'] if not future_results_df.empty else ['N/A', 'N/A']
+    })
+
 
         def color_scale(val):
             if isinstance(val, str) and '%' in val:
