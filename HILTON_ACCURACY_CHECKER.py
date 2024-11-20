@@ -83,7 +83,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         return None
 
     if excel_data is not None:
-        headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None, 'revenue': None, 'hotel name': None}
+        headers = {'business date': None, 'inncode': None, 'sold': None, 'rev': None, 'revenue': None}
         row_start = None
 
         for label in headers.keys():
@@ -107,10 +107,6 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
             filtered_data = op_data[op_data['inncode'] == inncode]
         else:
             filtered_data = op_data
-
-        # **Filter out rows where 'hotel name' is 'Total'**
-        if 'hotel name' in filtered_data.columns:
-            filtered_data = filtered_data[filtered_data['hotel name'].str.lower() != 'total']
 
         if filtered_data.empty:
             st.warning("No data found for the given Inncode in the first Excel file.")
