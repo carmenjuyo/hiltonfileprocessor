@@ -173,7 +173,7 @@ def dynamic_process_files(csv_file, excel_file, excel_file_2, inncode, perspecti
         results_df, past_accuracy_rn, past_accuracy_rev = pd.DataFrame(), 0, 0
 
     if excel_data_2 is not None:
-        headers_2 = {'occupancy date': None, 'occupancy on books this year': None, 'booked room revenue this year': None}
+        headers_2 = {'Occupancy Date': None, 'Occupancy On Books This Year': None, 'Booked Room Revenue This Year': None}
         row_start_2 = None
 
         for label in headers_2.keys():
